@@ -119,7 +119,8 @@ export function findTeamInHtml(teamName, html) {
     const href = $(el).attr('href');
     const text = $(el).text().toLowerCase();
     if (href && href.includes('/stats/team/') && (text.includes(searchName) || searchName.includes(text))) {
-      teamUrl = `https://sbancobet.net${href}`;
+      // Fix: Don't prepend domain if it's already an absolute URL
+      teamUrl = href.startsWith('http') ? href : `https://sbancobet.net${href}`;
       return false;
     }
   });
@@ -287,13 +288,22 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
   try {
     result = await model.generateContent(prompt);
   } catch (err) {
-    if (err.message.includes('404') || err.message.includes('not found')) {
-      console.warn('⚠️ Primary model failed (404). Trying fallback (gemini-1.5-flash-latest)...');
-      const fallbackModel = (new GoogleGenerativeAI(process.env.GEMINI_API_KEY)).getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
-      result = await fallbackModel.generateContent(prompt);
-    } else {
-      throw err;
+    const msg = err.message.toLowerCase();
+    if (msg.includes('404') || msg.includes('not found')) {
+      console.warn('⚠️ Model mismatch. Trying alternative model names...');
+      const fallbacks = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro'];
+      for (const mName of fallbacks) {
+        try {
+          console.log(`📡 Attempting fallback with: ${mName}`);
+          const fallbackModel = (new GoogleGenerativeAI(process.env.GEMINI_API_KEY)).getGenerativeModel({ model: mName });
+          result = await fallbackModel.generateContent(prompt);
+          if (result) break;
+        } catch (e2) {
+          console.warn(`❌ Fallback ${mName} failed: ${e2.message}`);
+        }
+      }
     }
+    if (!result) throw err;
   }
 
   const text = result.response.text().trim();

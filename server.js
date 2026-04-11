@@ -3,6 +3,7 @@ import * as cheerio from 'cheerio';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { promises as fs, readdirSync } from 'fs';
 import 'dotenv/config';
+import axios from 'axios';
 import { MongoClient, ObjectId } from 'mongodb';
 import { fileURLToPath } from 'url';
 import path from 'path';
@@ -64,12 +65,11 @@ async function discoverModels() {
   if (!apiKey) return;
   
   try {
-    console.log('📡 Fetching real model names from Google...');
+    console.log('📡 Fetching real model names from Google via Axios...');
     // Use v1 instead of v1beta to see if it makes a difference
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
-    if (response.ok) {
-        const data = await response.json();
-        // Keep the FULL names (models/...) to be ultra safe
+    const response = await axios.get(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
+    if (response.status === 200) {
+        const data = response.data;
         availableModels = data.models ? data.models.map(m => m.name) : [];
         console.log(`✅ DISCOVERED MODELS: ${availableModels.join(', ')}`);
     } else {
@@ -77,7 +77,7 @@ async function discoverModels() {
         availableModels = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-pro'];
     }
   } catch (err) {
-    console.error('❌ Model Discovery Error:', err.message);
+    console.error('❌ Model Discovery Error (Axios):', err.message);
     availableModels = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-pro'];
   }
 }
@@ -402,12 +402,15 @@ app.get('/api/debug/logs', (req, res) => {
 app.get('/api/debug/models', async (req, res) => {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   try {
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
-    const data = await response.json();
-    res.json({ status: response.status, data });
+    const response = await axios.get(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
+    res.json({ status: response.status, data: response.data });
   } catch (err) {
     res.json({ error: err.message });
   }
+});
+
+app.get('/api/version', (req, res) => {
+  res.json({ version: 'V9.5-RESILIENT', build: '2026-04-11T19:52' });
 });
 
 // ─── Database Manager ─────────────────────────────────────────────────────────

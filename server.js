@@ -56,18 +56,29 @@ console.log(`📂 Serving static files from: ${distPath}`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
 let model = null;
-try {
-  if (process.env.GEMINI_API_KEY) {
+let model = null;
+let availableModels = [];
+
+async function discoverModels() {
+  if (!process.env.GEMINI_API_KEY) return;
+  try {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // Use 'gemini-1.5-flash' as standard, but the SDK will handle the versioning better
+    // listModels is NOT directly on genAI in some SDK versions, let's use a robust approach
+    // In @google/generative-ai, listModels is not a top level part of the default export usually
+    // but we can try to find a working model by just attempting a tiny request if listing fails.
+    
+    console.log('📡 Discovering available AI models...');
+    // If we can't list, we'll use a fallback list
+    availableModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-pro'];
+    
     model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    console.log('🤖 Gemini AI: Initialized');
-  } else {
-    console.warn('⚠️ GEMINI_API_KEY missing. AI features will be disabled.');
+    console.log('🤖 Gemini AI: Initialized with default gemini-1.5-flash');
+  } catch (err) {
+    console.error('❌ Gemini AI Init Error:', err.message);
   }
-} catch (err) {
-  console.error('❌ Gemini AI Init Error:', err.message);
 }
+discoverModels();
+
 
 // ─── Sbancobet Configuration ──────────────────────────────────────────────────
 const LEAGUE_MAP = {
@@ -284,27 +295,33 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
 
   console.log('🤖 Calling Gemini AI (Enhanced Prompt)...');
   
-  let result;
-  try {
-    result = await model.generateContent(prompt);
-  } catch (err) {
-    const msg = err.message.toLowerCase();
-    if (msg.includes('404') || msg.includes('not found')) {
-      console.warn('⚠️ Model mismatch. Trying alternative model names...');
-      const fallbacks = ['gemini-1.5-flash-latest', 'gemini-1.5-flash', 'gemini-pro'];
-      for (const mName of fallbacks) {
-        try {
-          console.log(`📡 Attempting fallback with: ${mName}`);
-          const fallbackModel = (new GoogleGenerativeAI(process.env.GEMINI_API_KEY)).getGenerativeModel({ model: mName });
-          result = await fallbackModel.generateContent(prompt);
-          if (result) break;
-        } catch (e2) {
-          console.warn(`❌ Fallback ${mName} failed: ${e2.message}`);
-        }
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  let result = null;
+  let lastError = null;
+
+  // Try models in order of preference
+  const modelToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-pro'];
+  
+  for (const mName of modelToTry) {
+    try {
+      console.log(`📡 Trying AI model: ${mName}`);
+      const currentModel = genAI.getGenerativeModel({ model: mName });
+      result = await currentModel.generateContent(prompt);
+      if (result) {
+        console.log(`✅ Success with model: ${mName}`);
+        break; 
+      }
+    } catch (err) {
+      lastError = err;
+      console.warn(`❌ Model ${mName} failed: ${err.message}`);
+      if (!err.message.includes('404') && !err.message.includes('not found')) {
+        // If it's not a 404 (e.g. quota), don't keep trying others if it's a critical error
+        break; 
       }
     }
-    if (!result) throw err;
   }
+
+  if (!result) throw lastError || new Error('Nessun modello di IA disponibile per questa chiave.');
 
   const text = result.response.text().trim();
   

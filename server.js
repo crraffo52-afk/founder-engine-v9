@@ -22,8 +22,22 @@ console.log('🏁 Starting The Founder Engine AI Backend...');
 
 const app = express();
 const port = process.env.PORT || 3001;
+
+// Log folder structure to help debug Render deployment
+import { readdirSync } from 'fs';
+try {
+  console.log('📂 Root content:', readdirSync('.'));
+} catch(e) {}
+
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'dist'))); // Serve built frontend
+
+// Health check endpoint
+app.get('/ping', (req, res) => res.send('pong'));
+
+// Serve static files from dist
+const distPath = path.join(__dirname, 'dist');
+app.use(express.static(distPath)); 
+console.log(`📂 Serving static files from: ${distPath}`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);

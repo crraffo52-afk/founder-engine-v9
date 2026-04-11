@@ -36,6 +36,14 @@ app.get('/ping', (req, res) => res.send('pong'));
 
 // Serve static files from dist
 const distPath = path.join(__dirname, 'dist');
+
+try {
+  const files = readdirSync(distPath);
+  console.log(`📂 dist folder contents: ${files.join(', ')}`);
+} catch(e) {
+  console.error('❌ dist folder NOT FOUND! Ensure the build command is correct.');
+}
+
 app.use(express.static(distPath)); 
 console.log(`📂 Serving static files from: ${distPath}`);
 

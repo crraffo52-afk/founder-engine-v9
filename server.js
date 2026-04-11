@@ -163,11 +163,12 @@ export async function analyzeWithGemini(hStats, aStats, homeTeam, awayTeam, leag
     for (const ver of versions) {
       try {
         const url = `https://generativelanguage.googleapis.com/${ver}/models/${mName}:generateContent?key=${apiKey}`;
-        console.log(`📡 Trying REST: ${ver} / ${mName}`);
+        console.log(`📡 Sending Analysis Prompt (${ver} / ${mName})...`);
+        
+        // Final Fix: Omit responseMimeType in v1 to avoid "Unknown field" error
         const response = await axios.post(url, {
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { responseMimeType: "application/json" }
-        }, { timeout: 15000 });
+          contents: [{ parts: [{ text: prompt + "\n\nRESTITUISCI SOLO IL JSON, NESSUN ALTRO TESTO." }] }]
+        }, { timeout: 20000 });
 
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           const text = response.data.candidates[0].content.parts[0].text.trim();
@@ -175,14 +176,14 @@ export async function analyzeWithGemini(hStats, aStats, homeTeam, awayTeam, leag
           const end = text.lastIndexOf('}');
           if (start !== -1 && end !== -1) {
             finalJson = JSON.parse(text.substring(start, end + 1));
-            console.log(`✅ Success: ${ver}/${mName}`);
+            console.log(`✅ Success via ${ver}/${mName}`);
             break;
           }
         }
       } catch (err) {
         lastError = err;
         const errorData = err.response?.data?.error || {};
-        console.error(`❌ ${ver}/${mName} FAILED [${errorData.status || "ERR"}]: ${errorData.message || err.message}`);
+        console.warn(`❌ ${ver}/${mName} attempt failed: ${errorData.message || err.message}`);
       }
     }
     if (finalJson) break;
@@ -233,7 +234,7 @@ app.get('/api/debug/logs', (req, res) => {
 });
 
 app.get('/api/version', (req, res) => {
-  res.json({ version: 'V10.0-BLACKBOX', build: '2026-04-11T20:57' });
+  res.json({ version: 'V11.0-ELITE-FINALE', build: '2026-04-11T21:05' });
 });
 
 app.get(/^(?!\/api).*$/, (req, res) => {

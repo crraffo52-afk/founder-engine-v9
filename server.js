@@ -383,8 +383,14 @@ app.put('/api/history/:id', async (req, res) => {
 
 
 // Serve index.html for any unknown routes (SPA support)
-app.get('/*', (req, res) => {
-  res.sendFile(path.join(distPath, 'index.html'));
+app.get('*', (req, res) => {
+  const file = path.join(distPath, 'index.html');
+  res.sendFile(file, (err) => {
+    if (err) {
+      console.error('❌ Error sending index.html:', err.message);
+      res.status(404).send('Interfaccia in fase di caricamento... Ricarica tra 1 minuto.');
+    }
+  });
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url) || !process.argv[1]) {

@@ -195,8 +195,6 @@ export async function scrapeSbancobetStats(teamUrl) {
   }
 }
 
-// ─── Gemini Analysis ──────────────────────────────────────────────────────────
-
 export async function analyzeWithGemini(hStats, aStats, homeTeam, awayTeam, league) {
   const prompt = `Sei l'analista "THE FOUNDER AI".
 Match: ${homeTeam} vs ${awayTeam} (${league})
@@ -207,38 +205,53 @@ DATI FUORI: ${JSON.stringify(aStats, null, 1)}
 Istruzioni: Analizza i trend Over/Under e Multigol. Cerca il Valore.
 Restituisci solo un JSON con: summary, verdict, confidence_overall, data_source, markets (1X2, Over2.5, BTTS, Multigol Tot, Multigol Team, TOP PICK), telegram_signal.`;
 
-  console.log('🤖 Calling Gemini AI (Forced Stable v1)...');
-  // FORCE v1 API version to avoid 404s on v1beta for this key
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1' });
-  let result = null;
+  console.log('🤖 Calling Gemini AI (Protocol Zero - REST)...');
+  const apiKey = process.env.GEMINI_API_KEY;
+  let finalJson = null;
   let lastError = null;
 
   const modelToTry = [...new Set([
-    'models/gemini-2.5-flash', 
-    'models/gemini-2.0-flash',
-    ...availableModels, 
-    'models/gemini-1.5-flash'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-2.5-flash'
   ])];
 
+  // Try both v1 and v1beta endpoints for every model
+  const versions = ['v1', 'v1beta'];
+
   for (const mName of modelToTry) {
-    try {
-      console.log(`📡 Trying: ${mName}`);
-      const currentModel = genAI.getGenerativeModel({ model: mName });
-      result = await currentModel.generateContent(prompt);
-      if (result) break;
-    } catch (err) {
-      lastError = err;
-      console.warn(`❌ ${mName} fallito: ${err.message}`);
+    for (const ver of versions) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/${ver}/models/${mName}:generateContent?key=${apiKey}`;
+        console.log(`📡 Trying REST: ${ver} / ${mName}`);
+        
+        const response = await axios.post(url, {
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { responseMimeType: "application/json" }
+        }, { timeout: 15000 });
+
+        if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+          const text = response.data.candidates[0].content.parts[0].text.trim();
+          console.log(`✅ Success via REST (${ver}/${mName})`);
+          
+          const start = text.indexOf('{');
+          const end = text.lastIndexOf('}');
+          if (start !== -1 && end !== -1) {
+            finalJson = JSON.parse(text.substring(start, end + 1));
+            break;
+          }
+        }
+      } catch (err) {
+        lastError = err;
+        const msg = err.response?.data?.error?.message || err.message;
+        console.warn(`❌ REST ${ver}/${mName} failed: ${msg}`);
+      }
     }
+    if (finalJson) break;
   }
 
-  if (!result) throw lastError || new Error('IA Non Disponibile');
-
-  const text = result.response.text().trim();
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start === -1 || end === -1) throw new Error('JSON IA Invalido');
-  return JSON.parse(text.substring(start, end + 1));
+  if (!finalJson) throw lastError || new Error('IA Protocol Zero fallita.');
+  return finalJson;
 }
 
 // ─── Endpoints ─────────────────────────────────────────────────────────────────
@@ -293,7 +306,7 @@ app.get('/api/debug/models', async (req, res) => {
 });
 
 app.get('/api/version', (req, res) => {
-  res.json({ version: 'V9.7-CORE-STABLE', build: '2026-04-11T20:25' });
+  res.json({ version: 'V9.8-PROTOCOL-ZERO', build: '2026-04-11T20:47' });
 });
 
 // SPA Support

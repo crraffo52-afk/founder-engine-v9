@@ -60,21 +60,29 @@ let model = null;
 let availableModels = [];
 
 async function discoverModels() {
-  if (!process.env.GEMINI_API_KEY) return;
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  if (!apiKey) {
+    console.warn('⚠️ GEMINI_API_KEY missing.');
+    return;
+  }
+  
   try {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // listModels is NOT directly on genAI in some SDK versions, let's use a robust approach
-    // In @google/generative-ai, listModels is not a top level part of the default export usually
-    // but we can try to find a working model by just attempting a tiny request if listing fails.
+    const genAI = new GoogleGenerativeAI(apiKey);
+    console.log('📡 Fetching available model list from Google...');
     
-    console.log('📡 Discovering available AI models...');
-    // If we can't list, we'll use a fallback list
-    availableModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-pro'];
-    
-    model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-    console.log('🤖 Gemini AI: Initialized with default gemini-1.5-flash');
+    // Attempt to list models programmatically
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    if (response.ok) {
+        const data = await response.json();
+        availableModels = data.models ? data.models.map(m => m.name.replace('models/', '')) : [];
+        console.log(`✅ Found ${availableModels.length} models: ${availableModels.join(', ')}`);
+    } else {
+        console.warn(`❌ Failed to list models: ${response.status}`);
+        availableModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    }
   } catch (err) {
-    console.error('❌ Gemini AI Init Error:', err.message);
+    console.error('❌ Model Discovery Error:', err.message);
+    availableModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
   }
 }
 discoverModels();
@@ -399,8 +407,15 @@ app.get('/api/debug/logs', (req, res) => {
   </body></html>`);
 });
 
-app.post('/analyze', (req, res) => {
-  res.json({ analysis: "Live monitoring active.", telegram_signal: "WAIT" });
+app.get('/api/debug/models', async (req, res) => {
+  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
+  try {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    const data = await response.json();
+    res.json({ status: response.status, data });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
 });
 
 // ─── Database Manager ─────────────────────────────────────────────────────────

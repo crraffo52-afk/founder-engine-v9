@@ -59,6 +59,7 @@ let model = null;
 try {
   if (process.env.GEMINI_API_KEY) {
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // Use 'gemini-1.5-flash' as standard, but the SDK will handle the versioning better
     model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     console.log('🤖 Gemini AI: Initialized');
   } else {
@@ -281,7 +282,20 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
 }`;
 
   console.log('🤖 Calling Gemini AI (Enhanced Prompt)...');
-  const result = await model.generateContent(prompt);
+  
+  let result;
+  try {
+    result = await model.generateContent(prompt);
+  } catch (err) {
+    if (err.message.includes('404') || err.message.includes('not found')) {
+      console.warn('⚠️ Primary model failed (404). Trying fallback (gemini-1.5-flash-latest)...');
+      const fallbackModel = (new GoogleGenerativeAI(process.env.GEMINI_API_KEY)).getGenerativeModel({ model: 'gemini-1.5-flash-latest' });
+      result = await fallbackModel.generateContent(prompt);
+    } else {
+      throw err;
+    }
+  }
+
   const text = result.response.text().trim();
   
   // Robust JSON extraction: look for the first '{' and last '}'

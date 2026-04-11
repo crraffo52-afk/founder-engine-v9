@@ -107,35 +107,22 @@ async function fetchWithNative(url) {
 
 // ─── Sbancobet Scraper ────────────────────────────────────────────────────────
 
-export async function searchSbancobetTeam(teamName, leagueUrl) {
-  if (!leagueUrl) {
-    console.error('❌ Error: leagueUrl is undefined');
-    return null;
-  }
+// Modified version that accepts HTML to avoid redundant fetches
+export function findTeamInHtml(teamName, html) {
+  if (!html) return null;
+  const $ = cheerio.load(html);
+  let teamUrl = null;
+  const searchName = teamName.toLowerCase();
 
-  try {
-    console.log(`📡 Searching for ${teamName} at ${leagueUrl}`);
-    const html = await fetchWithNative(leagueUrl);
-    if (!html) throw new Error(`Empty response from league page`);
-    const $ = cheerio.load(html);
-    
-    let teamUrl = null;
-    const searchName = teamName.toLowerCase();
-
-    $('a').each((i, el) => {
-      const href = $(el).attr('href');
-      const text = $(el).text().toLowerCase();
-      if (href && href.includes('/stats/team/') && (text.includes(searchName) || searchName.includes(text))) {
-        teamUrl = `https://sbancobet.net${href}`;
-        return false;
-      }
-    });
-
-    return teamUrl;
-  } catch (e) {
-    console.error(`❌ Search error for ${teamName}:`, e.message);
-    return null;
-  }
+  $('a').each((i, el) => {
+    const href = $(el).attr('href');
+    const text = $(el).text().toLowerCase();
+    if (href && href.includes('/stats/team/') && (text.includes(searchName) || searchName.includes(text))) {
+      teamUrl = `https://sbancobet.net${href}`;
+      return false;
+    }
+  });
+  return teamUrl;
 }
 
 export async function scrapeSbancobetStats(teamUrl) {
@@ -314,37 +301,61 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
 app.post('/api/prematch', async (req, res) => {
   const { home, away, league } = req.body;
   if (!home || !away) return res.status(400).json({ error: 'Squadre mancanti' });
-
-  console.log(`🔍 SCOUT REQUEST: ${home} vs ${away} (${league})`);
+  const leagueUrl = LEAGUE_MAP[league] || LEAGUE_MAP['Serie A'];
 
   try {
-    const lUrl = LEAGUE_MAP[league] || LEAGUE_MAP['Serie A'];
+    console.log(`🚀 START PREMATCH: ${home} vs ${away} (${league})`);
     
-    // Find URLs
-    const [hUrl, aUrl] = await Promise.all([
-      searchSbancobetTeam(home, lUrl),
-      searchSbancobetTeam(away, lUrl)
-    ]);
+    // Step 1: Fetch League Page Once
+    console.log('📡 Fetching league page...');
+    const leagueHtml = await fetchWithNative(leagueUrl);
+    if (!leagueHtml) throw new Error('Impossibile caricare la pagina della lega.');
 
-    // Scrape stats
-    const [hStats, aStats] = await Promise.all([
-      hUrl ? scrapeSbancobetStats(hUrl) : null,
-      aUrl ? scrapeSbancobetStats(aUrl) : null
-    ]);
+    // Step 2: Find Team URLs sequentially
+    const hUrl = findTeamInHtml(home, leagueHtml);
+    const aUrl = findTeamInHtml(away, leagueHtml);
+    console.log(`🔗 URLs: Home(${hUrl ? 'YES' : 'NO'}), Away(${aUrl ? 'YES' : 'NO'})`);
+
+    // Step 3: Scrape stats sequentially (save memory)
+    console.log(`📡 Scraping ${home}...`);
+    const hStats = hUrl ? await scrapeSbancobetStats(hUrl) : null;
+    
+    console.log(`📡 Scraping ${away}...`);
+    const aStats = aUrl ? await scrapeSbancobetStats(aUrl) : null;
 
     // AI Analysis
+    console.log('🧠 Starting Gemini Analysis...');
     const analysis = await analyzeWithGemini(hStats, aStats, home, away, league);
+    console.log('✅ Analysis Success');
 
     res.json({
       home_stats: hStats,
       away_stats: aStats,
-      analysis
+      analysis,
+      logs: [`Found ${home}: ${!!hUrl}`, `Found ${away}: ${!!aUrl}`, `AI Analysis: Done`]
     });
 
   } catch (err) {
     console.error('💥 Prematch endpoint error:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+let serverLogs = [];
+const originalLog = console.log;
+console.log = (...args) => {
+  serverLogs.push(`[${new Date().toLocaleTimeString()}] ${args.join(' ')}`);
+  if (serverLogs.length > 50) serverLogs.shift();
+  originalLog(...args);
+};
+
+app.get('/api/debug/logs', (req, res) => {
+  res.send(`<html><body style="background:#18181b; color:#a1a1aa; font-family:monospace; padding:20px;">
+    <h2>Founder Engine Debug Logs</h2>
+    <div style="margin-bottom:10px;"><button onclick="location.reload()">Aggiorna</button></div>
+    <pre>${serverLogs.join('\n')}</pre>
+    <script>setTimeout(() => location.reload(), 5000);</script>
+  </body></html>`);
 });
 
 app.post('/analyze', (req, res) => {

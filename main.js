@@ -795,22 +795,29 @@ window.runPreMatch = async function() {
   const loadSec = byId('pmLoadingSection');
   const loadTxt = byId('pmLoadingText');
   loadSec.style.display = '';
-  loadTxt.textContent = `🔍 Cerco dati Sbancobet per ${home} vs ${away}...`;
+  
+  const setLoad = (txt) => { loadTxt.textContent = `🚀 ${txt}`; };
+  setLoad(`Inizializzazione caricamento per ${home} vs ${away}...`);
 
   const btn = byId('scoutBtn');
   btn.disabled = true;
-  btn.textContent = '⏳ Analisi in corso...';
+  btn.textContent = '⏳ Analisi...';
 
   try {
-    loadTxt.textContent = '📡 Sbancobet scraping ... Gemini elabora i trend...';
-
+    setLoad('📡 Caricamento dati lega (Sbancobet)...');
+    
     const res = await fetch('/api/prematch', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ home, away, league })
     });
 
-    if (!res.ok) throw new Error(`Server error: ${res.status}`);
+    if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `Errore Server ${res.status}`);
+    }
+    
+    setLoad('🧠 Elaborazione dati con Gemini AI...');
     const data = await res.json();
 
     loadSec.style.display = 'none';
@@ -852,7 +859,14 @@ window.runPreMatch = async function() {
   } catch (err) {
     loadSec.style.display = 'none';
     byId('pmSummarySection').style.display = '';
-    byId('pmSummaryBox').textContent = `❌ Errore: ${err.message}`;
+    byId('pmSummaryBox').innerHTML = `
+        <div style="color:var(--danger); border:1px solid var(--danger); padding:15px; border-radius:8px; background:rgba(244,63,94,0.05);">
+            <div style="font-weight:bold; margin-bottom:5px;">❌ ERRORE DI ANALISI</div>
+            <div style="font-size:12px;">${err.message}</div>
+            <div style="margin-top:10px; font-size:11px; color:var(--muted);">
+                Suggerimento: Se l'errore persiste, controlla se i nomi delle squadre sono corretti su Sbancobet (Serie A).
+            </div>
+        </div>`;
   } finally {
     btn.disabled = false;
     btn.textContent = '🔍 SCOUT MATCH';

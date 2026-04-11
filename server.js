@@ -144,16 +144,8 @@ export async function scrapeSbancobetStats(teamUrl) {
       name: $('h1').text().replace('Statistiche', '').trim() || 'Sconosciuta',
       over_under: { total: {}, home: {}, away: {} },
       btts_pct: { total: null, home: null, away: null },
-      corners: { 
-        total: { avg_total: null },
-        home: { avg_total: null },
-        away: { avg_total: null }
-      },
-      cards: { 
-        total: { yellow_avg: null },
-        home: { yellow_avg: null },
-        away: { yellow_avg: null }
-      },
+      corners: { total: { avg_total: null } },
+      cards: { total: { yellow_avg: null } },
       last_5: []
     };
 
@@ -195,28 +187,18 @@ export async function scrapeSbancobetStats(teamUrl) {
   }
 }
 
+// ─── Gemini Analysis ──────────────────────────────────────────────────────────
+
 export async function analyzeWithGemini(hStats, aStats, homeTeam, awayTeam, league) {
-  const prompt = `Sei l'analista "THE FOUNDER AI".
-Match: ${homeTeam} vs ${awayTeam} (${league})
-
-DATI CASA: ${JSON.stringify(hStats, null, 1)}
-DATI FUORI: ${JSON.stringify(aStats, null, 1)}
-
-Istruzioni: Analizza i trend Over/Under e Multigol. Cerca il Valore.
-Restituisci solo un JSON con: summary, verdict, confidence_overall, data_source, markets (1X2, Over2.5, BTTS, Multigol Tot, Multigol Team, TOP PICK), telegram_signal.`;
+  const prompt = `Sei "THE FOUNDER AI". Analizza match: ${homeTeam} vs ${awayTeam} (${league}).
+Restituisci JSON con: summary, verdict, confidence_overall, markets (1X2, Over2.5, BTTS, Multigol Tot, Multigol Team, TOP PICK), telegram_signal.`;
 
   console.log('🤖 Calling Gemini AI (Protocol Zero - REST)...');
   const apiKey = process.env.GEMINI_API_KEY;
   let finalJson = null;
   let lastError = null;
 
-  const modelToTry = [...new Set([
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-2.5-flash'
-  ])];
-
-  // Try both v1 and v1beta endpoints for every model
+  const modelToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
   const versions = ['v1', 'v1beta'];
 
   for (const mName of modelToTry) {
@@ -232,19 +214,18 @@ Restituisci solo un JSON con: summary, verdict, confidence_overall, data_source,
 
         if (response.data?.candidates?.[0]?.content?.parts?.[0]?.text) {
           const text = response.data.candidates[0].content.parts[0].text.trim();
-          console.log(`✅ Success via REST (${ver}/${mName})`);
-          
           const start = text.indexOf('{');
           const end = text.lastIndexOf('}');
           if (start !== -1 && end !== -1) {
             finalJson = JSON.parse(text.substring(start, end + 1));
+            console.log(`✅ Success via ${ver}/${mName}`);
             break;
           }
         }
       } catch (err) {
         lastError = err;
-        const msg = err.response?.data?.error?.message || err.message;
-        console.warn(`❌ REST ${ver}/${mName} failed: ${msg}`);
+        const errorData = err.response?.data?.error || {};
+        console.warn(`❌ REST ${ver}/${mName} failed [${errorData.status || "ERR"}]: ${errorData.message || err.message}`);
       }
     }
     if (finalJson) break;
@@ -274,7 +255,7 @@ app.post('/api/prematch', async (req, res) => {
       home_stats: hStats,
       away_stats: aStats,
       analysis,
-      logs: [`Found ${home}: ${!!hUrl}`, `Found ${away}: ${!!aUrl}`]
+      logs: [`Found ${home}: ${!!hUrl}`, `Found ${away}: ${!!aUrl}`, `AI Engine: Protocol Zero Success`]
     });
   } catch (err) {
     console.error('💥 Error:', err);
@@ -306,10 +287,9 @@ app.get('/api/debug/models', async (req, res) => {
 });
 
 app.get('/api/version', (req, res) => {
-  res.json({ version: 'V9.8-PROTOCOL-ZERO', build: '2026-04-11T20:47' });
+  res.json({ version: 'V9.9-DIAGNOSTIC-MODE', build: '2026-04-11T20:55' });
 });
 
-// SPA Support
 app.get(/^(?!\/api).*$/, (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });

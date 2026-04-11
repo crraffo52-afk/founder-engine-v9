@@ -296,7 +296,16 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
   console.log('🤖 Calling Gemini AI (Enhanced Prompt)...');
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
-  const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();
+  
+  // Robust JSON extraction: look for the first '{' and last '}'
+  const start = text.indexOf('{');
+  const end = text.lastIndexOf('}');
+  
+  if (start === -1 || end === -1) {
+    throw new Error('L\'IA non ha restituito un formato JSON valido. Riprova tra un istante.');
+  }
+
+  const cleaned = text.substring(start, end + 1);
   return JSON.parse(cleaned);
 }
 
@@ -442,7 +451,7 @@ app.put('/api/history/:id', async (req, res) => {
 
 
 // Serve index.html for any unknown routes (SPA support)
-app.get('*', (req, res) => {
+app.get('/*', (req, res) => {
   const file = path.join(distPath, 'index.html');
   res.sendFile(file, (err) => {
     if (err) {

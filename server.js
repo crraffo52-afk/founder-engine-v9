@@ -302,8 +302,6 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
   let result = null;
   let lastError = null;
 
-  // Combine discovered models with common fallbacks
-  const modelToTry = [...new Set([...availableModels, 'models/gemini-1.5-flash', 'models/gemini-2.0-flash-exp', 'models/gemini-1.5-pro'])];
   
   for (const mName of modelToTry) {
     try {

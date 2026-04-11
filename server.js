@@ -374,8 +374,8 @@ app.put('/api/history/:id', async (req, res) => {
 
 
 // Serve index.html for any unknown routes (SPA support)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+app.get('/*', (req, res) => {
+  res.sendFile(path.join(distPath, 'index.html'));
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url) || !process.argv[1]) {

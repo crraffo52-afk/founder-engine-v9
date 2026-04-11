@@ -4,6 +4,11 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 import { promises as fs } from 'fs';
 import 'dotenv/config';
 import { MongoClient, ObjectId } from 'mongodb';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Global error handlers to catch startup crashes
 process.on('uncaughtException', (err) => {
@@ -18,7 +23,7 @@ console.log('🏁 Starting The Founder Engine AI Backend...');
 const app = express();
 const port = process.env.PORT || 3001;
 app.use(express.json());
-app.use(express.static('dist')); // Serve built frontend
+app.use(express.static(path.join(__dirname, 'dist'))); // Serve built frontend
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -339,9 +344,8 @@ app.put('/api/history/:id', async (req, res) => {
 
 
 // Serve index.html for any unknown routes (SPA support)
-import path from 'path';
 app.get('*', (req, res) => {
-  res.sendFile(path.join(process.cwd(), 'dist', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url) || !process.argv[1]) {

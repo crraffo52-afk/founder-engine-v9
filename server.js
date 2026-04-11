@@ -6,6 +6,7 @@ import 'dotenv/config';
 import { MongoClient, ObjectId } from 'mongodb';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -24,7 +25,6 @@ const app = express();
 const port = process.env.PORT || 3001;
 
 // Log folder structure to help debug Render deployment
-import { readdirSync } from 'fs';
 try {
   console.log('📂 Root content:', readdirSync('.'));
 } catch(e) {}
@@ -363,10 +363,12 @@ app.get('*', (req, res) => {
 });
 
 if (process.argv[1] === fileURLToPath(import.meta.url) || !process.argv[1]) {
-  initDb().then(() => {
-    app.listen(port, () => {
-      console.log(`🚀 Professional AI Engine listening at http://localhost:${port}`);
-      console.log(`🤖 Gemini AI: CONNECTED ✅`);
-    });
+  // Start server IMMEDIATELY to satisfy hosting health checks
+  app.listen(port, () => {
+    console.log(`🚀 Professional AI Engine listening at http://localhost:${port}`);
+    console.log(`🤖 Gemini AI: CONNECTED ✅`);
   });
+
+  // Then try to init database in background
+  initDb().catch(err => console.error('Background DB Init Error:', err));
 }

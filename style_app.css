@@ -727,3 +727,53 @@ textarea {
         grid-template-columns: 1fr;
     }
 }
+
+/* Enriched Stats Styles */
+.pm-stat-grid-header {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--accent);
+    padding: 5px 0;
+    text-align: center;
+    border-bottom: 2px solid rgba(255,255,255,0.05);
+}
+
+.pm-stat-row-split {
+    display: grid;
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    align-items: center;
+    text-align: center;
+}
+
+.pm-stat-row-split .lbl {
+    text-align: left;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.pm-stat-row-split strong {
+    font-size: 12px;
+    color: #fff;
+}
+
+.pm-last5-container {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255,255,255,0.02);
+    border-radius: 8px;
+    border-left: 3px solid var(--accent);
+}
+
+.pm-market-reasoning {
+    margin-top: 10px;
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--muted);
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 8px;
+    font-style: italic;
+}

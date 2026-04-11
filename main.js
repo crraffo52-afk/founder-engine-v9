@@ -669,21 +669,63 @@ async function runAI() {
 function renderPMStats(stats, name) {
     if (!stats) return `<div style="color:var(--muted);">Dati non disponibili per ${name}</div>`;
     
+    const getS = (obj, path, sub) => {
+        const parts = path.split('.');
+        let val = obj;
+        for (const p of parts) val = val?.[p];
+        return val || '—';
+    };
+
+    const renderLast5 = (matches) => {
+        if (!matches || matches.length === 0) return '—';
+        return matches.map(m => {
+            const color = m.trend === 'V' ? 'var(--ok)' : m.trend === 'P' ? 'var(--warn)' : 'var(--danger)';
+            return `<div style="display:flex; justify-content:space-between; font-size:10px; margin-bottom:2px; border-bottom:1px solid rgba(255,255,255,0.03);">
+                <span style="color:${color}; font-weight:800;">[${m.trend}]</span>
+                <span style="color:var(--muted);">${m.score}</span>
+            </div>`;
+        }).join('');
+    };
+
     return `
       <div class="pm-stat-name">${name}</div>
-      <div class="pm-stat-row"><span>Over 2.5 %</span><strong>${stats.over_under?.['over2.5'] || '—'}</strong></div>
-      <div class="pm-stat-row"><span>BTTS (GG) %</span><strong>${stats.btts_pct || '—'}</strong></div>
-      <div class="pm-stat-row"><span>Over 1.5 %</span><strong>${stats.over_under?.['over1.5'] || '—'}</strong></div>
-      <div class="pm-stat-row"><span>Over 3.5 %</span><strong>${stats.over_under?.['over3.5'] || '—'}</strong></div>
-      <div class="pm-stat-row" style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.05); padding-top:10px;">
-        <span>Angoli Medi (TOT)</span><strong>${stats.corners?.avg_total || '—'}</strong>
+      <div class="pm-stat-grid-header">
+        <span></span><span>TOT</span><span>CASA</span><span>FUORI</span>
       </div>
-      <div class="pm-stat-row" style="font-size:11px;">
-        <span>Angoli Pro / Contro</span>
-        <strong>${stats.corners?.avg_for || '—'} / ${stats.corners?.avg_against || '—'}</strong>
+      <div class="pm-stat-row-split">
+        <span class="lbl">Over 2.5 %</span>
+        <strong>${getS(stats, 'over_under.total.over25')}</strong>
+        <strong>${getS(stats, 'over_under.home.over25')}</strong>
+        <strong>${getS(stats, 'over_under.away.over25')}</strong>
       </div>
-      <div class="pm-stat-row"><span>Gialli Medi</span><strong>${stats.cards?.yellow_avg || '—'}</strong></div>
-      <div class="pm-stat-row"><span>Rossi Totali</span><strong>${stats.cards?.red_total || '—'}</strong></div>`;
+      <div class="pm-stat-row-split">
+        <span class="lbl">BTTS %</span>
+        <strong>${getS(stats, 'btts_pct.total')}</strong>
+        <strong>${getS(stats, 'btts_pct.home')}</strong>
+        <strong>${getS(stats, 'btts_pct.away')}</strong>
+      </div>
+      <div class="pm-stat-row-split">
+        <span class="lbl">Over 1.5 %</span>
+        <strong>${getS(stats, 'over_under.total.over15')}</strong>
+        <strong>${getS(stats, 'over_under.home.over15')}</strong>
+        <strong>${getS(stats, 'over_under.away.over15')}</strong>
+      </div>
+      <div class="pm-stat-row-split" style="margin-top:8px;">
+        <span class="lbl">Angoli Medi</span>
+        <strong>${getS(stats, 'corners.total.avg_total')}</strong>
+        <strong>${getS(stats, 'corners.home.avg_total')}</strong>
+        <strong>${getS(stats, 'corners.away.avg_total')}</strong>
+      </div>
+      <div class="pm-stat-row-split">
+        <span class="lbl">Gialli Medi</span>
+        <strong>${getS(stats, 'cards.total.yellow_avg')}</strong>
+        <strong>${getS(stats, 'cards.home.yellow_avg')}</strong>
+        <strong>${getS(stats, 'cards.away.yellow_avg')}</strong>
+      </div>
+      <div class="pm-last5-container">
+        <div style="font-size:10px; color:var(--accent); font-weight:700; margin-bottom:5px;">ULTIME 5 PARTITE:</div>
+        ${renderLast5(stats.last_5)}
+      </div>`;
 }
 
 function init() {

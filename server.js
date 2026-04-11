@@ -148,23 +148,46 @@ export async function scrapeSbancobetStats(teamUrl) {
 
     const stats = {
       name: $('h1').text().replace('Statistiche', '').trim() || 'Sconosciuta',
-      over_under: {},
-      btts_pct: null,
-      corners: { avg_total: null, avg_for: null, avg_against: null },
-      cards: { yellow_avg: null, red_total: null }
+      over_under: { total: {}, home: {}, away: {} },
+      btts_pct: { total: null, home: null, away: null },
+      corners: { 
+        total: { avg_total: null, avg_for: null, avg_against: null },
+        home: { avg_total: null, avg_for: null, avg_against: null },
+        away: { avg_total: null, avg_for: null, avg_against: null }
+      },
+      cards: { 
+        total: { yellow_avg: null, red_total: null },
+        home: { yellow_avg: null, red_total: null },
+        away: { yellow_avg: null, red_total: null }
+      },
+      last_5: []
     };
 
     // Scrape tables
     const ouTable = $('h3:contains("Statistiche Over/Under")').next('div').find('table');
     ouTable.find('tr').each((i, tr) => {
       const cells = $(tr).find('td');
-      if (cells.length >= 2) {
+      if (cells.length >= 4) {
         const label = $(tr).find('th').text().trim();
-        const value = $(cells[0]).text().trim(); 
-        if (label.includes('Over 2.5')) stats.over_under.over25 = value;
-        if (label.includes('Over 1.5')) stats.over_under.over15 = value;
-        if (label.includes('Over 3.5')) stats.over_under.over35 = value;
-        if (label.includes('Entrambe Segnano')) stats.btts_pct = value;
+        const vAll = $(cells[0]).text().trim(); // Note: Subagent said cells[1] is All, but usually th is not counted as td. Let's use indices carefully.
+        const vHome = $(cells[1]).text().trim();
+        const vAway = $(cells[2]).text().trim();
+
+        if (label.includes('Over 2.5')) {
+          stats.over_under.total.over25 = vAll;
+          stats.over_under.home.over25 = vHome;
+          stats.over_under.away.over25 = vAway;
+        }
+        if (label.includes('Over 1.5')) {
+          stats.over_under.total.over15 = vAll;
+          stats.over_under.home.over15 = vHome;
+          stats.over_under.away.over15 = vAway;
+        }
+        if (label.includes('Entrambe Segnano')) {
+          stats.btts_pct.total = vAll;
+          stats.btts_pct.home = vHome;
+          stats.btts_pct.away = vAway;
+        }
       }
     });
 
@@ -172,17 +195,39 @@ export async function scrapeSbancobetStats(teamUrl) {
     cornerTable.find('tr').each((i, tr) => {
       const cells = $(tr).find('td');
       const label = $(tr).find('th').text().trim();
-      if (label.includes('Media Totale')) stats.corners.avg_total = $(cells[0]).text().trim();
-      if (label.includes('Media a favore')) stats.corners.avg_for = $(cells[0]).text().trim();
-      if (label.includes('Media contro')) stats.corners.avg_against = $(cells[0]).text().trim();
+      if (cells.length >= 3) {
+        if (label.includes('Media Totale')) {
+           stats.corners.total.avg_total = $(cells[0]).text().trim();
+           stats.corners.home.avg_total = $(cells[1]).text().trim();
+           stats.corners.away.avg_total = $(cells[2]).text().trim();
+        }
+      }
     });
 
     const cardTable = $('h3:contains("Statistiche Cartellini")').next('div').find('table');
     cardTable.find('tr').each((i, tr) => {
       const cells = $(tr).find('td');
       const label = $(tr).find('th').text().trim();
-      if (label.includes('Gialli')) stats.cards.yellow_avg = $(cells[0]).text().trim();
-      if (label.includes('Rossi')) stats.cards.red_total = $(cells[0]).text().trim();
+      if (cells.length >= 3) {
+        if (label.includes('Gialli')) {
+          stats.cards.total.yellow_avg = $(cells[0]).text().trim();
+          stats.cards.home.yellow_avg = $(cells[1]).text().trim();
+          stats.cards.away.yellow_avg = $(cells[2]).text().trim();
+        }
+      }
+    });
+
+    // Scrape Last 5 Matches
+    const last5Table = $('h3:contains("ULTIME 5 PARTITE")').next('div').find('table');
+    last5Table.find('tr').each((i, tr) => {
+      const cells = $(tr).find('td');
+      if (cells.length >= 3) {
+        const date = $(cells[0]).text().trim();
+        const teams = $(cells[1]).text().trim();
+        const score = $(cells[2]).text().trim();
+        const trend = $(tr).find('td.text-center b').text().trim(); // V, P, S
+        stats.last_5.push({ date, teams, score, trend });
+      }
     });
 
     return stats;
@@ -196,45 +241,59 @@ export async function scrapeSbancobetStats(teamUrl) {
 
 async function analyzeWithGemini(homeStats, awayStats, homeTeam, awayTeam, league) {
   const hasData = homeStats || awayStats;
+  
+  const formatLast5 = (matches) => {
+    return matches?.map(m => `${m.date}: ${m.teams} (${m.score}) [${m.trend}]`).join('\n') || 'N/D';
+  };
+
   const statsBlock = hasData ? `
 ## DATI TREND SBANCOBET (Stagione Corrente)
 
-### ${homeTeam} (CASA)
-- Over 2.5 %: ${homeStats?.over_under?.over25 || 'N/D'}
-- BTTS (GG) %: ${homeStats?.btts_pct || 'N/D'}
-- Media Angoli Tot: ${homeStats?.corners?.avg_total || 'N/D'}
-- Media Cartellini Gialli: ${homeStats?.cards?.yellow_avg || 'N/D'}
+### ${homeTeam} (Analisi specifica CASA)
+- Over 2.5 % (CASA): ${homeStats?.over_under?.home?.over25 || 'N/D'}
+- BTTS (GG) % (CASA): ${homeStats?.btts_pct?.home || 'N/D'}
+- Media Angoli (CASA): ${homeStats?.corners?.home?.avg_total || 'N/D'}
+- Media Cartellini (CASA): ${homeStats?.cards?.home?.yellow_avg || 'N/D'}
+- FORMA RECENTE:
+${formatLast5(homeStats?.last_5)}
 
-### ${awayTeam} (TRASFERTA)
-- Over 2.5 %: ${awayStats?.over_under?.over25 || 'N/D'}
-- BTTS (GG) %: ${awayStats?.btts_pct || 'N/D'}
-- Media Angoli Tot: ${awayStats?.corners?.avg_total || 'N/D'}
-- Media Cartellini Gialli: ${awayStats?.cards?.yellow_avg || 'N/D'}` 
+### ${awayTeam} (Analisi specifica TRASFERTA)
+- Over 2.5 % (FUORI): ${awayStats?.over_under?.away?.over25 || 'N/D'}
+- BTTS (GG) % (FUORI): ${awayStats?.btts_pct?.away || 'N/D'}
+- Media Angoli (FUORI): ${awayStats?.corners?.away?.avg_total || 'N/D'}
+- Media Cartellini (FUORI): ${awayStats?.cards?.away?.yellow_avg || 'N/D'}
+- FORMA RECENTE:
+${formatLast5(awayStats?.last_5)}` 
   : `Dati Sbancobet non disponibili. Usa la tua conoscenza per ${homeTeam} e ${awayTeam} in ${league}.`;
 
   const prompt = `
-Analizza ${homeTeam} vs ${awayTeam} (${league}) usando questi trend SBANCOBET.
-Genera un report premium per The Founder Engine.
+Sei "THE FOUNDER AI", il vertice dell'analisi probabilistica nel betting sportivo.
+Analizza ${homeTeam} vs ${awayTeam} (${league}) usando i trend SBANCOBET sopra forniti.
 
-${statsBlock}
+REGOLE DI ANALISI (CHAIN OF THOUGHT):
+1. Confronta la forza in casa della ${homeTeam} con la vulnerabilità in trasferta della ${awayTeam}.
+2. Analizza la "Forma Recente": i risultati delle ultime 5 partite indicano un trend di crescita o calo statistico?
+3. Valuta i mercati GOL, OVER, 1X2 e soprattutto i MULTIGOL (Totali, Casa e Trasferta).
+4. Cerca il VALORE: dove la statistica "schiaccia" le probabilità comuni?
 
-Restituisci JSON:
+Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
 {
-  "summary": "...",
+  "summary": "Analisi tecnica profonda...",
   "verdict": "BET | VALUE | WATCH | SKIP",
   "confidence_overall": "Alta | Media | Bassa",
-  "data_source": "Sbancobet + Gemini AI",
+  "data_source": "Sbancobet Premium Data + Gemini AI",
   "markets": [
-    { "name": "1X2", "pick": "1|X|2", "label": "...", "rating": "...", "confidence": "...", "quota_target": "...", "reasoning": "..." },
-    { "name": "Over/Under 2.5", "pick": "...", "label": "...", "rating": "...", "confidence": "...", "quota_target": "...", "reasoning": "..." },
-    { "name": "BTTS (GG/NG)", "pick": "...", "label": "...", "rating": "...", "confidence": "...", "quota_target": "...", "reasoning": "..." },
-    { "name": "Under/Over Angoli", "pick": "...", "label": "...", "rating": "...", "confidence": "...", "quota_target": "...", "reasoning": "..." },
-    { "name": "⭐ TOP PICK", "pick": "...", "label": "TOP PICK", "rating": "BET", "confidence": "Alta", "quota_target": "...", "reasoning": "..." }
+    { "name": "1X2", "pick": "1|X|2", "label": "Esito Finale", "rating": "...", "confidence": "...", "reasoning": "Ragionamento basato su forma e casa/fuori" },
+    { "name": "Over/Under 2.5", "pick": "...", "label": "Over/Under", "rating": "...", "confidence": "...", "reasoning": "..." },
+    { "name": "BTTS (GG/NG)", "pick": "...", "label": "Gol/NoGol", "rating": "...", "confidence": "...", "reasoning": "..." },
+    { "name": "Multigol Totale", "pick": "2-4 | 1-3 | 2-5", "label": "Multigol", "rating": "...", "confidence": "...", "reasoning": "..." },
+    { "name": "Multigol Squadra", "pick": "CASA 1-3 | OSPITE 1-2", "label": "Multigol Team", "rating": "...", "confidence": "...", "reasoning": "..." },
+    { "name": "⭐ TOP PICK", "pick": "...", "label": "TOP PICK", "rating": "BET", "confidence": "Alta", "reasoning": "Il segnale più forte del match" }
   ],
-  "telegram_signal": "⚽ THE FOUNDER SCOUT | ${homeTeam} vs ${awayTeam} ..."
+  "telegram_signal": "⚽ THE FOUNDER ELITE | ${homeTeam} vs ${awayTeam} ..."
 }`;
 
-  console.log('🤖 Calling Gemini AI...');
+  console.log('🤖 Calling Gemini AI (Enhanced Prompt)...');
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
   const cleaned = text.replace(/^```json\n?/, '').replace(/\n?```$/, '').trim();

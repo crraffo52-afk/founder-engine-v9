@@ -207,15 +207,16 @@ DATI FUORI: ${JSON.stringify(aStats, null, 1)}
 Istruzioni: Analizza i trend Over/Under e Multigol. Cerca il Valore.
 Restituisci solo un JSON con: summary, verdict, confidence_overall, data_source, markets (1X2, Over2.5, BTTS, Multigol Tot, Multigol Team, TOP PICK), telegram_signal.`;
 
-  console.log('🤖 Calling Gemini AI...');
-  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  console.log('🤖 Calling Gemini AI (Forced Stable v1)...');
+  // FORCE v1 API version to avoid 404s on v1beta for this key
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY, { apiVersion: 'v1' });
   let result = null;
   let lastError = null;
 
   const modelToTry = [...new Set([
-    ...availableModels, 
     'models/gemini-2.5-flash', 
-    'models/gemini-2.0-flash', 
+    'models/gemini-2.0-flash',
+    ...availableModels, 
     'models/gemini-1.5-flash'
   ])];
 
@@ -292,7 +293,7 @@ app.get('/api/debug/models', async (req, res) => {
 });
 
 app.get('/api/version', (req, res) => {
-  res.json({ version: 'V9.6-FINAL-STABLE', build: '2026-04-11T20:15' });
+  res.json({ version: 'V9.7-CORE-STABLE', build: '2026-04-11T20:25' });
 });
 
 // SPA Support

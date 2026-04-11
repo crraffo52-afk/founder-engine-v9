@@ -34,14 +34,22 @@ app.use(express.json());
 // Health check endpoint
 app.get('/ping', (req, res) => res.send('pong'));
 
-// Serve static files from dist
-const distPath = path.join(__dirname, 'dist');
+// Serve static files from dist (Flexible Resolution)
+const possiblePaths = [
+  path.join(__dirname, 'dist'),
+  path.join(process.cwd(), 'dist'),
+  './dist'
+];
 
-try {
-  const files = readdirSync(distPath);
-  console.log(`📂 dist folder contents: ${files.join(', ')}`);
-} catch(e) {
-  console.error('❌ dist folder NOT FOUND! Ensure the build command is correct.');
+let distPath = possiblePaths[0];
+for (const p of possiblePaths) {
+  try {
+    if (readdirSync(p)) {
+      distPath = p;
+      console.log(`✅ Found dist folder at: ${p}`);
+      break;
+    }
+  } catch(e) {}
 }
 
 app.use(express.static(distPath)); 

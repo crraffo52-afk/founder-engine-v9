@@ -57,26 +57,19 @@ console.log(`📂 Serving static files from: ${distPath}`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
 let availableModels = [];
-let model = null;
 
 async function discoverModels() {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey) return;
-  
   try {
-    console.log('📡 Fetching real model names from Google via Axios...');
     const response = await axios.get(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
     if (response.status === 200) {
-        const data = response.data;
-        availableModels = data.models ? data.models.map(m => m.name) : [];
+        availableModels = response.data.models ? response.data.models.map(m => m.name.replace('models/', '')) : [];
         console.log(`✅ DISCOVERED MODELS: ${availableModels.join(', ')}`);
-    } else {
-        console.warn(`❌ Model listing failed (HTTP ${response.status}). Using hardcoded fallbacks.`);
-        availableModels = ['models/gemini-2.5-flash', 'models/gemini-2.0-flash', 'models/gemini-1.5-flash'];
     }
   } catch (err) {
-    console.error('❌ Model Discovery Error (Axios):', err.message);
-    availableModels = ['models/gemini-2.5-flash', 'models/gemini-2.0-flash', 'models/gemini-1.5-flash'];
+    console.warn('❌ Discovery Error:', err.message);
+    availableModels = ['gemini-2.0-flash', 'gemini-1.5-flash'];
   }
 }
 discoverModels();
@@ -100,18 +93,14 @@ const HEADERS = {
 
 async function fetchWithNative(url) {
   try {
-    console.log(`📡 Fetching: ${url}`);
     const response = await fetch(url, {
-      headers: {
-        'User-Agent': HEADERS['User-Agent'],
-        'Accept': HEADERS['Accept']
-      },
+      headers: { 'User-Agent': HEADERS['User-Agent'], 'Accept': HEADERS['Accept'] },
       signal: AbortSignal.timeout(15000)
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
     return await response.text();
   } catch (err) {
-    console.error(`❌ Fetch Error for ${url}:`, err.message);
+    console.error(`❌ Fetch Error:`, err.message);
     return null;
   }
 }
@@ -121,7 +110,6 @@ export function findTeamInHtml(teamName, html) {
   const $ = cheerio.load(html);
   let teamUrl = null;
   const searchName = teamName.toLowerCase();
-
   $('a').each((i, el) => {
     const href = $(el).attr('href');
     const text = $(el).text().toLowerCase();
@@ -135,20 +123,15 @@ export function findTeamInHtml(teamName, html) {
 
 export async function scrapeSbancobetStats(teamUrl) {
   try {
-    console.log(`📡 Scraping stats from: ${teamUrl}`);
     const html = await fetchWithNative(teamUrl);
-    if (!html) throw new Error(`Empty response from team page`);
+    if (!html) throw new Error(`Empty response`);
     const $ = cheerio.load(html);
-
     const stats = {
       name: $('h1').text().replace('Statistiche', '').trim() || 'Sconosciuta',
       over_under: { total: {}, home: {}, away: {} },
       btts_pct: { total: null, home: null, away: null },
-      corners: { total: { avg_total: null } },
-      cards: { total: { yellow_avg: null } },
       last_5: []
     };
-
     const ouTable = $('h3:contains("Statistiche Over/Under")').next('div').find('table');
     ouTable.find('tr').each((i, tr) => {
       const cells = $(tr).find('td');
@@ -159,46 +142,21 @@ export async function scrapeSbancobetStats(teamUrl) {
           stats.over_under.home.over25 = $(cells[1]).text().trim();
           stats.over_under.away.over25 = $(cells[2]).text().trim();
         }
-        if (label.includes('Entrambe Segnano')) {
-          stats.btts_pct.total = $(cells[0]).text().trim();
-          stats.btts_pct.home = $(cells[1]).text().trim();
-          stats.btts_pct.away = $(cells[2]).text().trim();
-        }
       }
     });
-
-    const last5Table = $('h3:contains("ULTIME 5 PARTITE")').next('div').find('table');
-    last5Table.find('tr').each((i, tr) => {
-      const cells = $(tr).find('td');
-      if (cells.length >= 3) {
-        stats.last_5.push({ 
-          date: $(cells[0]).text().trim(), 
-          teams: $(cells[1]).text().trim(), 
-          score: $(cells[2]).text().trim(),
-          trend: $(tr).find('td.text-center b').text().trim()
-        });
-      }
-    });
-
     return stats;
-  } catch (e) {
-    console.error(`❌ Scrape error for ${teamUrl}:`, e.message);
-    return null;
-  }
+  } catch (e) { return null; }
 }
 
 // ─── Gemini Analysis ──────────────────────────────────────────────────────────
 
 export async function analyzeWithGemini(hStats, aStats, homeTeam, awayTeam, league) {
-  const prompt = `Sei "THE FOUNDER AI". Analizza match: ${homeTeam} vs ${awayTeam} (${league}).
-Restituisci JSON con: summary, verdict, confidence_overall, markets (1X2, Over2.5, BTTS, Multigol Tot, Multigol Team, TOP PICK), telegram_signal.`;
-
-  console.log('🤖 Calling Gemini AI (Protocol Zero - REST)...');
+  const prompt = `Sei analista THE FOUNDER AI. Match: ${homeTeam} vs ${awayTeam}. Dati: ${JSON.stringify(hStats)} vs ${JSON.stringify(aStats)}. Restituisci JSON summary, verdict, confidence, markets, telegram_signal.`;
   const apiKey = process.env.GEMINI_API_KEY;
   let finalJson = null;
   let lastError = null;
 
-  const modelToTry = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-2.5-flash'];
+  const modelToTry = [...new Set(['gemini-2.0-flash', 'gemini-1.5-flash', ...availableModels])];
   const versions = ['v1', 'v1beta'];
 
   for (const mName of modelToTry) {
@@ -206,7 +164,6 @@ Restituisci JSON con: summary, verdict, confidence_overall, markets (1X2, Over2.
       try {
         const url = `https://generativelanguage.googleapis.com/${ver}/models/${mName}:generateContent?key=${apiKey}`;
         console.log(`📡 Trying REST: ${ver} / ${mName}`);
-        
         const response = await axios.post(url, {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { responseMimeType: "application/json" }
@@ -218,20 +175,19 @@ Restituisci JSON con: summary, verdict, confidence_overall, markets (1X2, Over2.
           const end = text.lastIndexOf('}');
           if (start !== -1 && end !== -1) {
             finalJson = JSON.parse(text.substring(start, end + 1));
-            console.log(`✅ Success via ${ver}/${mName}`);
+            console.log(`✅ Success: ${ver}/${mName}`);
             break;
           }
         }
       } catch (err) {
         lastError = err;
         const errorData = err.response?.data?.error || {};
-        console.warn(`❌ REST ${ver}/${mName} failed [${errorData.status || "ERR"}]: ${errorData.message || err.message}`);
+        console.error(`❌ ${ver}/${mName} FAILED [${errorData.status || "ERR"}]: ${errorData.message || err.message}`);
       }
     }
     if (finalJson) break;
   }
-
-  if (!finalJson) throw lastError || new Error('IA Protocol Zero fallita.');
+  if (!finalJson) throw lastError || new Error('All AI models failed.');
   return finalJson;
 }
 
@@ -240,54 +196,44 @@ Restituisci JSON con: summary, verdict, confidence_overall, markets (1X2, Over2.
 app.post('/api/prematch', async (req, res) => {
   const { home, away, league } = req.body;
   const leagueUrl = LEAGUE_MAP[league] || LEAGUE_MAP['Serie A'];
-
   try {
     const leagueHtml = await fetchWithNative(leagueUrl);
     const hUrl = findTeamInHtml(home, leagueHtml);
     const aUrl = findTeamInHtml(away, leagueHtml);
-    
     const hStats = hUrl ? await scrapeSbancobetStats(hUrl) : null;
     const aStats = aUrl ? await scrapeSbancobetStats(aUrl) : null;
-
     const analysis = await analyzeWithGemini(hStats, aStats, home, away, league);
-
-    res.json({
-      home_stats: hStats,
-      away_stats: aStats,
-      analysis,
-      logs: [`Found ${home}: ${!!hUrl}`, `Found ${away}: ${!!aUrl}`, `AI Engine: Protocol Zero Success`]
-    });
+    res.json({ home_stats: hStats, away_stats: aStats, analysis });
   } catch (err) {
-    console.error('💥 Error:', err);
+    console.error('💥 Prematch Error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
 
 let serverLogs = [];
 const originalLog = console.log;
-console.log = (...args) => {
-  serverLogs.push(`[${new Date().toLocaleTimeString()}] ${args.join(' ')}`);
-  if (serverLogs.length > 50) serverLogs.shift();
-  originalLog(...args);
+const originalWarn = console.warn;
+const originalError = console.error;
+
+const captureLog = (type, ...args) => {
+  serverLogs.push(`[${new Date().toLocaleTimeString()}] [${type}] ${args.join(' ')}`);
+  if (serverLogs.length > 100) serverLogs.shift();
 };
 
+console.log = (...args) => { captureLog('LOG', ...args); originalLog(...args); };
+console.warn = (...args) => { captureLog('WARN', ...args); originalWarn(...args); };
+console.error = (...args) => { captureLog('ERROR', ...args); originalError(...args); };
+
 app.get('/api/debug/logs', (req, res) => {
-  res.send(`<html><body style="background:#18181b; color:#a1a1aa; font-family:monospace; padding:20px;">
+  res.send(`<html><body style="background:#111; color:#ccc; font-family:monospace; padding:20px;">
+    <h3>FOUNDER DEBUG LOGS (ALL)</h3>
     <pre>${serverLogs.join('\n')}</pre>
     <script>setTimeout(() => location.reload(), 5000);</script>
   </body></html>`);
 });
 
-app.get('/api/debug/models', async (req, res) => {
-  const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-  try {
-    const response = await axios.get(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
-    res.json(response.data);
-  } catch (err) { res.json({ error: err.message }); }
-});
-
 app.get('/api/version', (req, res) => {
-  res.json({ version: 'V9.9-DIAGNOSTIC-MODE', build: '2026-04-11T20:55' });
+  res.json({ version: 'V10.0-BLACKBOX', build: '2026-04-11T20:57' });
 });
 
 app.get(/^(?!\/api).*$/, (req, res) => {
@@ -295,7 +241,7 @@ app.get(/^(?!\/api).*$/, (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`🚀 Engine listening at http://localhost:${port}`);
+  console.log(`🚀 V10.0-BLACKBOX online on port ${port}`);
   initDb();
 });
 
@@ -305,7 +251,7 @@ async function initDb() {
     try {
       const client = new MongoClient(MONGODB_URI);
       await client.connect();
-      console.log('📦 MongoDB: OK');
+      console.log('📦 DB OK');
     } catch (e) { console.error('❌ DB Error:', e.message); }
   }
 }

@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.env
+*.log
+history.json
+cloudflared.exe
+server.err
+server.log
+ultimo_tunnel.log
+tunnel*.log
+public_tunnel.log
+!history.json # Keep history.json if user really wants, but better to exclude it for clean remote

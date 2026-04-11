@@ -1,12 +1,11 @@
 import express from 'express';
 import * as cheerio from 'cheerio';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { promises as fs } from 'fs';
+import { promises as fs, readdirSync } from 'fs';
 import 'dotenv/config';
 import { MongoClient, ObjectId } from 'mongodb';
 import { fileURLToPath } from 'url';
 import path from 'path';
-import { readdirSync } from 'fs';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -56,8 +55,18 @@ app.use(express.static(distPath));
 console.log(`📂 Serving static files from: ${distPath}`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+let model = null;
+try {
+  if (process.env.GEMINI_API_KEY) {
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    console.log('🤖 Gemini AI: Initialized');
+  } else {
+    console.warn('⚠️ GEMINI_API_KEY missing. AI features will be disabled.');
+  }
+} catch (err) {
+  console.error('❌ Gemini AI Init Error:', err.message);
+}
 
 // ─── Sbancobet Configuration ──────────────────────────────────────────────────
 const LEAGUE_MAP = {

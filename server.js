@@ -61,28 +61,24 @@ let availableModels = [];
 
 async function discoverModels() {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
-  if (!apiKey) {
-    console.warn('⚠️ GEMINI_API_KEY missing.');
-    return;
-  }
+  if (!apiKey) return;
   
   try {
-    const genAI = new GoogleGenerativeAI(apiKey);
-    console.log('📡 Fetching available model list from Google...');
-    
-    // Attempt to list models programmatically
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+    console.log('📡 Fetching real model names from Google...');
+    // Use v1 instead of v1beta to see if it makes a difference
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`);
     if (response.ok) {
         const data = await response.json();
-        availableModels = data.models ? data.models.map(m => m.name.replace('models/', '')) : [];
-        console.log(`✅ Found ${availableModels.length} models: ${availableModels.join(', ')}`);
+        // Keep the FULL names (models/...) to be ultra safe
+        availableModels = data.models ? data.models.map(m => m.name) : [];
+        console.log(`✅ DISCOVERED MODELS: ${availableModels.join(', ')}`);
     } else {
-        console.warn(`❌ Failed to list models: ${response.status}`);
-        availableModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+        console.warn(`❌ Model listing failed (HTTP ${response.status}). Using hardcoded fallbacks.`);
+        availableModels = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-pro'];
     }
   } catch (err) {
     console.error('❌ Model Discovery Error:', err.message);
-    availableModels = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-pro'];
+    availableModels = ['models/gemini-1.5-flash', 'models/gemini-1.5-flash-latest', 'models/gemini-pro'];
   }
 }
 discoverModels();
@@ -307,8 +303,8 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
   let result = null;
   let lastError = null;
 
-  // Try models in order of preference
-  const modelToTry = ['gemini-1.5-flash', 'gemini-1.5-flash-latest', 'gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-pro'];
+  // Combine discovered models with common fallbacks
+  const modelToTry = [...new Set([...availableModels, 'models/gemini-1.5-flash', 'models/gemini-2.0-flash-exp', 'models/gemini-1.5-pro'])];
   
   for (const mName of modelToTry) {
     try {
@@ -316,16 +312,12 @@ Restituisci ESCLUSIVAMENTE un JSON con questa struttura:
       const currentModel = genAI.getGenerativeModel({ model: mName });
       result = await currentModel.generateContent(prompt);
       if (result) {
-        console.log(`✅ Success with model: ${mName}`);
+        console.log(`✅ Analysis Success with model: ${mName}`);
         break; 
       }
     } catch (err) {
       lastError = err;
       console.warn(`❌ Model ${mName} failed: ${err.message}`);
-      if (!err.message.includes('404') && !err.message.includes('not found')) {
-        // If it's not a 404 (e.g. quota), don't keep trying others if it's a critical error
-        break; 
-      }
     }
   }
 
@@ -517,13 +509,13 @@ app.put('/api/history/:id', async (req, res) => {
 });
 
 
-// Serve index.html for any unknown routes (SPA support)
-app.get('/*', (req, res) => {
+// Serve index.html for any unknown non-API routes (SPA support)
+app.get(/^(?!\/api).*$/, (req, res) => {
   const file = path.join(distPath, 'index.html');
   res.sendFile(file, (err) => {
     if (err) {
       console.error('❌ Error sending index.html:', err.message);
-      res.status(404).send('Interfaccia in fase di caricamento... Ricarica tra 1 minuto.');
+      res.status(404).send('Interfaccia in fase di caricamento...');
     }
   });
 });

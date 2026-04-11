@@ -56,7 +56,8 @@ app.use(express.static(distPath));
 console.log(`📂 Serving static files from: ${distPath}`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
-
+let availableModels = [];
+let model = null;
 
 async function discoverModels() {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();

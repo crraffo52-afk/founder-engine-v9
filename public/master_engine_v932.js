@@ -183,6 +183,61 @@ window.autoSuggestLayer = function(data) {
     updateExchangeCalc();
 };
 
+function updateStatsUI(data) {
+    const grid = byId('parsedDisplay');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    // Header title
+    if (byId('matchTitle')) byId('matchTitle').textContent = `— ${data.home} vs ${data.away}`;
+
+    const s = data.stats;
+    const items = [
+        { label: 'Tiri in Porta (SOT)', val: `${s.sot?.[0] || 0} - ${s.sot?.[1] || 0}` },
+        { label: 'Attacchi Peric. (DA)', val: `${s.da?.[0] || 0} - ${s.da?.[1] || 0}` },
+        { label: 'Calci d\'Angolo', val: `${s.cor?.[0] || 0} - ${s.cor?.[1] || 0}` },
+        { label: 'Possesso Palla', val: `${s.pos?.[0] || 0}% - ${s.pos?.[1] || 0}%` },
+        { label: 'xG (Expected Goals)', val: `${data.xgh.toFixed(2)} - ${data.xga.toFixed(2)}` },
+        { label: 'Status Match', val: `${data.minute || 'FT'}' | ${data.gh}-${data.ga}` }
+    ];
+
+    items.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'parsed-item';
+        div.innerHTML = `<span class="label">${item.label}</span><strong class="val">${item.val}</strong>`;
+        grid.appendChild(div);
+    });
+}
+
+function updateBookUI(data) {
+    const grid = byId('bookGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const totalXG = data.xgh + data.xga;
+    const pOver05 = Math.round((1 - Math.exp(-totalXG)) * 100);
+    const pOver15 = Math.round((1 - Math.exp(-totalXG) * (1 + totalXG)) * 100);
+    const pGoal = Math.round(( (1 - Math.exp(-data.xgh)) * (1 - Math.exp(-data.xga)) ) * 100);
+
+    const markets = [
+        { name: 'Over 0.5 Total', prob: pOver05, color: '#2dd4bf' },
+        { name: 'Over 1.5 Total', prob: pOver15, color: '#f59e0b' },
+        { name: 'BTTS (Goal)', prob: pGoal, color: '#6366f1' },
+        { name: 'Home Score', prob: Math.round((1-Math.exp(-data.xgh))*100), color: '#2dd4bf' }
+    ];
+
+    markets.forEach(m => {
+        const box = document.createElement('div');
+        box.className = 'book-card';
+        box.innerHTML = `
+            <div class="book-name">${m.name}</div>
+            <div class="book-prob" style="color:${m.color}">${m.prob}%</div>
+            <div class="book-bar"><div class="book-fill" style="width:${m.prob}%; background:${m.color}"></div></div>
+        `;
+        grid.appendChild(box);
+    });
+}
+
 function runAnalysis() {
     console.log('--- START ANALYSIS ---');
     const raw = byId('scanner').value.trim();
@@ -203,6 +258,8 @@ function runAnalysis() {
 
         lastData = data;
         calcMomentum(data);
+        updateStatsUI(data);
+        updateBookUI(data);
         updateExchangeCalc();
         window.autoSuggestLayer(data);
         
@@ -223,6 +280,7 @@ async function runAI() {
     const res = await fetch('/api/analyze', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(lastData) });
     const result = await res.json();
     byId('signal').textContent = result.analysis || 'Analisi completata.';
+    byId('signal').classList.remove('signal-empty');
   } catch (err) {
     byId('signal').textContent = `⚠️ Analisi locale attiva.`;
   } finally {
@@ -236,6 +294,10 @@ async function runAI() {
 function init() {
     byId('importBtn')?.addEventListener('click', runAnalysis);
     byId('runBtn')?.addEventListener('click', runAI);
+    byId('clearBtn')?.addEventListener('click', () => {
+        byId('scanner').value = '';
+        location.reload();
+    });
     byId('scanner')?.addEventListener('input', () => {
         clearTimeout(autoTimer);
         autoTimer = setTimeout(runAnalysis, 1000);

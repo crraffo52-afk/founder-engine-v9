@@ -156,52 +156,43 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability) {
 window.switchTab = function(tab) {
     document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Content`).style.display = 'grid';
-    byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`).classList.add('active');
+    
+    const target = byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Content`);
+    if (target) target.style.display = 'grid';
+    
+    const btn = byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+    if (btn) btn.classList.add('active');
+
+    if (tab === 'global') fetchGlobalScanner();
 };
 
-window.autoSuggestLayer = function(data) {
-    const typeEl = byId('entryType');
-    if (!typeEl) return;
-    const min = data.minute || 0, totalGoals = data.gh + data.ga;
-    if (totalGoals === 0 && min >= 15 && min <= 40) typeEl.value = 'PRIMARY';
-    else if (totalGoals > 0 && min < 75) typeEl.value = 'RECOVERY';
-    else if (min >= 75) typeEl.value = 'SCALP';
-    updateExchangeCalc();
-};
-
-function runAnalysis() {
-    const raw = byId('scanner').value.trim();
-    if (!raw) return;
-    const data = parseRawMatchText(raw);
-    lastData = data;
-    
-    calcMomentum(data);
-    updateExchangeCalc();
-    window.autoSuggestLayer(data);
-    
-    byId('signal').textContent = `⚡ ${data.home || 'Match'} ${data.gh}-${data.ga} | Min: ${data.minute}' | XG: ${data.xgh?.toFixed(2)}-${data.xga?.toFixed(2)}`;
-    byId('signal').classList.remove('signal-empty');
-}
-
-// ─── GLOBAL RADAR (RADAR) ─────────────────────────────────────────────────────
-
-window.parseRawScannerData = function() {
-    const text = byId('rawGlobalInput')?.value.trim();
+window.fetchGlobalScanner = async function() {
     const table = byId('globalScannerTable');
-    if (!text || !table) return;
-
-    const matches = [];
-    const blocks = text.split(/([A-Z][a-z]+ [A-Z].+ vs .+)/); // Simple splitter for teams
-    
-    // Simplified radar parsing for recovery
-    table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center;">Radar in funzione...</td></tr>`;
-    setTimeout(() => {
-        table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted)">Incolla i dati di InPlayGuru per attivare l'Elite Radar.</td></tr>`;
-    }, 500);
+    if (!table) return;
+    table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center;">📡 Radar OMNI-RECOVERY in funzione...</td></tr>`;
+    try {
+        const res = await fetch('/api/scanner-live');
+        const data = await res.json();
+        if (data.length === 0) {
+            table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted)">Nessun match live rilevato nel Radar.</td></tr>`;
+            return;
+        }
+        table.innerHTML = data.map(p => `
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <td style="padding:10px; color:var(--accent); font-weight:bold;">${p.minute}'</td>
+                <td style="padding:10px; font-size:12px;"><strong>${p.home} vs ${p.away}</strong><br><small>${p.league}</small></td>
+                <td style="padding:10px; text-align:center;"><b>${p.gh} - ${p.ga}</b></td>
+                <td style="padding:10px; color:var(--muted);">${p.xgh.toFixed(2)} - ${p.xga.toFixed(2)}</td>
+                <td style="padding:10px; color:var(--ok); font-weight:bold;">${((p.stats.da[0]+p.stats.da[1])/p.minute).toFixed(2)}</td>
+                <td style="padding:10px; color:var(--muted);">${p.stats.sot[0]}-${p.stats.sot[1]}</td>
+                <td style="padding:10px; text-align:center;"><button onclick="document.getElementById('scanner').value='${p.home} vs ${p.away} ${p.gh}:${p.ga} ${p.minute}:00 Stats live XG ${p.xgh}-${p.xga} Dangerous Attacks ${p.stats.da[0]}-${p.stats.da[1]}'; switchTab('live'); runAnalysis();" style="padding:4px 8px; font-size:10px; background:var(--bg-lighter); color:var(--accent); border:1px solid var(--accent); border-radius:4px; cursor:pointer;">ANALIZZA</button></td>
+            </tr>
+        `).join('');
+        byId('globalScannerCount').textContent = `(${data.length} MATCH ATTIVI)`;
+    } catch (e) {
+        table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--danger)">Errore Radar: ${e.message}</td></tr>`;
+    }
 };
-
-// ─── INITIALIZATION ──────────────────────────────────────────────────────────
 
 function init() {
     byId('importBtn')?.addEventListener('click', runAnalysis);
@@ -212,6 +203,8 @@ function init() {
     ['b1', 'lx', 'stake', 'prevLoss', 'entryType'].forEach(id => {
         byId(id)?.addEventListener('input', updateExchangeCalc);
     });
+    // Inizializza al tab live
+    window.switchTab('live');
 }
 
 document.addEventListener('DOMContentLoaded', init);

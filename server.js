@@ -203,11 +203,13 @@ app.get('/api/scanner-live', async (req, res) => {
   try {
     const apiKey = (process.env.API_FOOTBALL_KEY || '').trim();
     
-    if (!apiKey) {
-      console.warn('⚠️ API_FOOTBALL_KEY mancante. Avvio modalità SIMULAZIONE.');
+    // Se la chiave è mancante o troppo corta (placeholder), avvia simulazione
+    if (apiKey.length < 20) {
+      console.warn(`⚠️ API_FOOTBALL_KEY (${apiKey.length} chars) non valida o mancante. Avvio modalità SIMULAZIONE.`);
       return res.json([
         { id: 1, league: 'Premier League', minute: 24, home: 'Chelsea', away: 'Man City', gh: 0, ga: 0, xgh: 0.20, xga: 0.11, stats: { da: [14, 35], sot: [1, 0], pos: [34, 66] } },
-        { id: 2, league: 'Serie A', minute: 65, home: 'Inter', away: 'Milan', gh: 1, ga: 1, xgh: 1.45, xga: 1.10, stats: { da: [45, 42], sot: [4, 3], pos: [52, 48] } }
+        { id: 2, league: 'Serie A', minute: 65, home: 'Inter', away: 'Milan', gh: 1, ga: 1, xgh: 1.45, xga: 1.10, stats: { da: [45, 42], sot: [4, 3], pos: [52, 48] } },
+        { id: 3, league: 'Bundesliga', minute: 15, home: 'B. Munich', away: 'Dortmund', gh: 0, ga: 0, xgh: 0.85, xga: 0.12, stats: { da: [22, 10], sot: [3, 0], pos: [70, 30] } }
       ]);
     }
 

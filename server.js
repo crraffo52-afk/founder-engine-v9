@@ -9,13 +9,14 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 1. PRIORITÀ ASSOLUTA AI FILE STATICI
+// 1. ASSET PUBBLICI (ISOLAMENTO TOTALE)
+app.use(express.static(path.join(__dirname, 'public')));
+
 app.use(express.json());
-app.use(express.static(__dirname));
 
 // 2. ROTTE SPECIFICHE API
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', version: '9.3.3-HUB-RESTORED', mode: 'Live-Focus' });
+  res.json({ status: 'OK', version: '9.4.0-STABLE', mode: 'Live-Focus' });
 });
 
 // ─── GEMINI AI SETUP ───────────────────────────────────────────────────────────
@@ -48,15 +49,11 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
-// 3. RECUPERO FRONTEND (DEFAULT TO INDEX)
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-
+// 3. RECUPERO FRONTEND (SPA ROUTING)
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Founder Engine V9.3.3 (VISIBILITY FIX) pronto sulla porta ${PORT}`);
+  console.log(`🚀 Founder Engine V9.4.0 (STABLE) pronto sulla porta ${PORT}`);
 });

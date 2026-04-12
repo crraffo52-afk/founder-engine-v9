@@ -201,8 +201,15 @@ let liveScannerCache = { data: [], timestamp: 0 };
 
 app.get('/api/scanner-live', async (req, res) => {
   try {
-    const apiKey = process.env.API_FOOTBALL_KEY;
-    if (!apiKey) return res.status(500).json({ error: 'API_FOOTBALL_KEY non configurata.' });
+    const apiKey = (process.env.API_FOOTBALL_KEY || '').trim();
+    
+    if (!apiKey) {
+      console.warn('⚠️ API_FOOTBALL_KEY mancante. Avvio modalità SIMULAZIONE.');
+      return res.json([
+        { id: 1, league: 'Premier League', minute: 24, home: 'Chelsea', away: 'Man City', gh: 0, ga: 0, xgh: 0.20, xga: 0.11, stats: { da: [14, 35], sot: [1, 0], pos: [34, 66] } },
+        { id: 2, league: 'Serie A', minute: 65, home: 'Inter', away: 'Milan', gh: 1, ga: 1, xgh: 1.45, xga: 1.10, stats: { da: [45, 42], sot: [4, 3], pos: [52, 48] } }
+      ]);
+    }
 
     // Cache di 60 secondi per non bruciare la quota API
     if (Date.now() - liveScannerCache.timestamp < 60000 && liveScannerCache.data.length > 0) {

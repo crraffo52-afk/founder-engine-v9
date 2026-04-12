@@ -37,10 +37,19 @@ function parseRawMatchText(raw) {
         }
     }
 
-    // Minuto
-    const minAlt = text.match(/\b(\d{1,3})['′]/);
-    if (minAlt) result.minute = parseInt(minAlt[1]);
-    else if (text.includes('FT')) result.minute = 90;
+    // Minuto (Priorità a MM:SS, poi MM', poi FT)
+    const minLive = text.match(/\b([5-9]\d|\d{2,3}):\d{2}\b/); // MM:SS
+    const minAlt = text.match(/\b(\d{1,3})['′]/g); // Tutte le occorrenze di MM'
+    
+    if (minLive) {
+        result.minute = parseInt(minLive[1]);
+    } else if (minAlt) {
+        // Prendi l'ultimo (solitamente il più alto è il live, i primi sono i gol)
+        const mins = minAlt.map(m => parseInt(m));
+        result.minute = Math.max(...mins);
+    } else if (text.includes('FT')) {
+        result.minute = 90;
+    }
 
     // Multiline Stats & Score
     const statDef = [
@@ -135,11 +144,13 @@ function updateBookUI(data) {
 }
 
 function calcMomentum(data) {
-    const threatH = Math.max(0, data.xgh - data.gh);
-    const threatA = Math.max(0, data.xga - data.ga);
-    const total = Math.max(threatH + threatA, 0.1);
-
-    const mHome = Math.round((threatH / total) * 100);
+    // PRESSURE INDEX 2.0 (Basato su Pressione Reale, non solo xG residuo)
+    const s = data.stats;
+    const pHome = (data.xgh * 5) + ((s.sot?.[0]||0) * 2) + ((s.da?.[0]||0) * 0.4);
+    const pAway = (data.xga * 5) + ((s.sot?.[1]||0) * 2) + ((s.da?.[1]||0) * 0.4);
+    
+    const total = Math.max(pHome + pAway, 0.1);
+    const mHome = Math.round((pHome / total) * 100);
     const mAway = 100 - mHome;
 
     byId('mHome').style.width = `${mHome}%`;
@@ -213,6 +224,31 @@ function calculateDynamicStrategy(data) {
         badge.style.color = 'var(--danger)';
         reason.textContent = `Assalto finale in corso. Diffusione tiri alta. Segnale per Over 0.5 aggiuntivo.`;
         return;
+    }
+
+    // 6. LEAD PROTECTION / RECOVERY (0-2 or 2-0 case)
+    const s = data.stats;
+    const pHome = (xgH * 5) + ((s.sot?.[0]||0) * 2) + ((s.da?.[0]||0) * 0.4);
+    const pAway = (xgA * 5) + ((s.sot?.[1]||0) * 2) + ((s.da?.[1]||0) * 0.4);
+    const pTotal = Math.max(pHome + pAway, 0.1);
+    const mHomePerc = Math.round((pHome / pTotal) * 100);
+
+    if (Math.abs(data.gh - data.ga) >= 2) {
+        const losingTeam = data.gh < data.ga ? data.home : data.away;
+        const losingP = data.gh < data.ga ? pHome : pAway;
+        if (losingP > pTotal * 0.6) {
+            badge.textContent = 'COMEBACK PRESSURE';
+            badge.style.borderColor = 'var(--warn)';
+            badge.style.color = 'var(--warn)';
+            reason.textContent = `Lo svantaggio di 2 gol non ferma il ${losingTeam}. Pressione alta (${mHomePerc}%). Attenzione a possibili sorprese.`;
+            return;
+        } else {
+            badge.textContent = 'SAFE LEAD';
+            badge.style.borderColor = 'var(--ok)';
+            badge.style.color = 'var(--ok)';
+            reason.textContent = `Vantaggio consolidato. Pressione sotto controllo. Match in gestione.`;
+            return;
+        }
     }
 
     if ((xgH + xgA) > 0.1) {

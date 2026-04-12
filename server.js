@@ -9,20 +9,18 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// 1. PRIORITÀ ASSOLUTA AI FILE STATICI
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(__dirname));
+
+// 2. ROTTE SPECIFICHE API
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'OK', version: '9.3.3-HUB-RESTORED', mode: 'Live-Focus' });
+});
 
 // ─── GEMINI AI SETUP ───────────────────────────────────────────────────────────
 const GEMINI_KEY = process.env.GEMINI_API_KEY || "AIzaSyB4At3SgZV3p19HL9QWfm-rmSWXI4RzOnc";
 const genAI = new GoogleGenerativeAI(GEMINI_KEY);
-
-// ─── LOGGING & BASE ───────────────────────────────────────────────────────────
-
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', version: '9.3.2-MASTER-ESM', mode: 'Live-Focus' });
-});
-
-// ─── AI ANALYSIS ENDPOINT ─────────────────────────────────────────────────────
 
 app.post('/api/analyze', async (req, res) => {
   const data = req.body;
@@ -50,12 +48,15 @@ app.post('/api/analyze', async (req, res) => {
   }
 });
 
-// ─── STATIC ROUTING ──────────────────────────────────────────────────────────
+// 3. RECUPERO FRONTEND (DEFAULT TO INDEX)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Founder Engine V9.3.2 (ESM) pronto sulla porta ${PORT}`);
+  console.log(`🚀 Founder Engine V9.3.3 (VISIBILITY FIX) pronto sulla porta ${PORT}`);
 });

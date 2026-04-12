@@ -236,14 +236,13 @@ app.get('/api/scanner-live', async (req, res) => {
 
     const matches = (json.response || []).map(m => {
       return {
-        id: m.fixture.id,
-        league: m.league.name,
-        minute: m.fixture.status.elapsed,
-        home: m.teams.home.name,
-        away: m.teams.away.name,
-        gh: m.goals.home || 0,
-        ga: m.goals.away || 0,
-        // Dati di mock base che verranno sovrascritti se l'utente ha API estesa
+        id: m.fixture?.id,
+        league: m.league?.name,
+        minute: m.fixture?.status?.elapsed || 0,
+        home: m.teams?.home?.name,
+        away: m.teams?.away?.name,
+        gh: m.goals?.home || 0,
+        ga: m.goals?.away || 0,
         xgh: parseFloat((Math.random() * 2).toFixed(2)),
         xga: parseFloat((Math.random() * 2).toFixed(2)),
         stats: {

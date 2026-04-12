@@ -54,14 +54,23 @@ function parseRawMatchText(raw) {
 
     const statDefs = [
         { keys: ['Tiri in Porta', 'SOT'], stat: 'sot' },
-        { keys: ['Attacchi Pericolosi', 'Dangerous Attacks'], stat: 'da' },
-        { keys: ["Calci d'Angolo", 'Corners'], stat: 'cor' },
+        { keys: ['Attacchi Pericolosi', 'Dangerous Attacks', 'DA'], stat: 'da' },
+        { keys: ["Calci d'Angolo", 'Corners', 'Corner'], stat: 'cor' },
         { keys: ['Possesso Palla', 'Possession'], stat: 'pos' },
     ];
 
     lines.forEach((line, i) => {
         statDefs.forEach(def => {
-            if (def.keys.some(k => line.toLowerCase().includes(k.toLowerCase()))) {
+            // First try inline like "Dangerous Attacks 40-20" or "SOT 4-0"
+            def.keys.forEach(k => {
+                const inlineRegex = new RegExp(`\\b${k}\\s*(\\d+)\\s*[-\\:]\\s*(\\d+)`, 'i');
+                const m = line.match(inlineRegex);
+                if (m) {
+                    result.stats[def.stat] = [parseFloat(m[1]), parseFloat(m[2])];
+                }
+            });
+            // If not found inline, check multiline
+            if (!result.stats[def.stat] && def.keys.some(k => line.toLowerCase().includes(k.toLowerCase()))) {
                 const v1 = parseFloat(lines[i+1]);
                 const v2 = parseFloat(lines[i+2]);
                 if (!isNaN(v1) && !isNaN(v2)) result.stats[def.stat] = [v1, v2];

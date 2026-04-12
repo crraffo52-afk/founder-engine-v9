@@ -38,8 +38,8 @@ function parseRawMatchText(raw) {
     if (minAlt) result.minute = parseInt(minAlt[1]);
     else if (text.includes('FT')) result.minute = 90;
 
-    // Stat Grid Scanner (Multiline & Inline Support)
     const statDef = [
+        { key: 'Goal', id: 'score' },
         { key: 'XG', id: 'xg' },
         { key: 'Tiri in Porta', id: 'sot' },
         { key: 'Attacchi Pericolosi', id: 'da' },
@@ -55,6 +55,7 @@ function parseRawMatchText(raw) {
                 const valA = parseFloat(lines[i+2]?.replace(',', '.').replace('%', ''));
                 if (!isNaN(valH) && !isNaN(valA)) {
                     if (def.id === 'xg') { result.xgh = valH; result.xga = valA; }
+                    else if (def.id === 'score') { result.gh = valH; result.ga = valA; }
                     else { result.stats[def.id] = [valH, valA]; }
                 }
             }
@@ -229,6 +230,16 @@ function calculateDynamicStrategy(data) {
         badge.style.borderColor = 'var(--danger)';
         badge.style.color = 'var(--danger)';
         reason.textContent = `Assalto finale in corso. Frequenza tiri alta. Segnale per Over 0.5 aggiuntivo.`;
+        return;
+    }
+
+    // 5. FT SUMMARY
+    if (min >= 90) {
+        badge.textContent = 'MATCH ENDED';
+        badge.style.borderColor = 'var(--muted)';
+        badge.style.color = '#fff';
+        const winner = data.gh > data.ga ? data.home : (data.ga > data.gh ? data.away : 'Pareggio');
+        reason.textContent = `Risultato Finale ${score}. Vincitore: ${winner}. xG Totali: ${xgSum.toFixed(2)}.`;
         return;
     }
 

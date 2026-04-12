@@ -226,10 +226,16 @@ let liveScannerCache = { data: [], timestamp: 0 };
         const json = await response.json();
         
         if (json.errors && Object.keys(json.errors).length > 0) {
-            throw new Error(Object.values(json.errors)[0]);
+            console.error('❌ API Football Errors:', json.errors);
+            throw new Error('API Error');
         }
 
-        const matches = (json.response || []).map(m => ({
+        if (!json.response || !Array.isArray(json.response)) {
+            console.warn('⚠️ API Response non valida. Attivazione SIMULAZIONE.');
+            throw new Error('Invalid Data');
+        }
+
+        const matches = json.response.map(m => ({
             id: m.fixture?.id,
             league: m.league?.name,
             minute: m.fixture?.status?.elapsed || 1,
@@ -241,12 +247,16 @@ let liveScannerCache = { data: [], timestamp: 0 };
             stats: { da: [0,0], sot: [0,0], pos: [50,50] }
         }));
 
+        if (matches.length === 0) {
+            console.warn('⚠️ Nessun match live trovato. Attivazione SIMULAZIONE.');
+            throw new Error('No Matches');
+        }
+
         liveScannerCache = { data: matches, timestamp: Date.now() };
         res.json(matches);
 
     } catch (err) {
-        console.error('💥 API Radar Error:', err.message);
-        console.warn('🔄 Fallback alla modalità SIMULAZIONE per prevenire blocchi UI.');
+        console.error('💥 Fallback Radar:', err.message);
         res.json(simulatedData);
     }
 });

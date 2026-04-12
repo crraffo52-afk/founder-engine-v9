@@ -175,13 +175,13 @@ window.fetchGlobalScanner = async function() {
         const data = await res.json();
         
         if (!Array.isArray(data)) {
-            console.error('Radar Error: Expected array but received', data);
-            table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--warn)">⚠️ Radar momentaneamente indisponibile. Riprova tra poco.</td></tr>`;
+            console.error('Radar Error: Payload is not an array', data);
+            table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--warn)">⚠️ Radar momentaneamente limitato. Utilizza lo Scanner Manuale o riprova tra 60 secondi.</td></tr>`;
             return;
         }
 
         if (data.length === 0) {
-            table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted)">Nessun match live rilevato nel Radar.</td></tr>`;
+            table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted)">🏁 Nessun match live in corso rilevato dal Radar.</td></tr>`;
             return;
         }
         table.innerHTML = data.map(p => `

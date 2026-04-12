@@ -15,7 +15,7 @@ const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 // ─── LOGGING & BASE ───────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', version: '9.2.2-GEMINI', mode: 'Live-Focus' });
+  res.json({ status: 'OK', version: '9.3.1-MASTER', mode: 'Live-Focus' });
 });
 
 // ─── AI ANALYSIS ENDPOINT ─────────────────────────────────────────────────────

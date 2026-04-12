@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-const fs = require('fs');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -8,24 +8,42 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
+// ─── GEMINI AI SETUP ───────────────────────────────────────────────────────────
+const GEMINI_KEY = "AIzaSyB4At3SgZV3p19HL9QWfm-rmSWXI4RzOnc";
+const genAI = new GoogleGenerativeAI(GEMINI_KEY);
+
 // ─── LOGGING & BASE ───────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', version: '9.2.0-CORE', mode: 'Live-Focus' });
+  res.json({ status: 'OK', version: '9.2.2-GEMINI', mode: 'Live-Focus' });
 });
 
-// ─── AI ANALYSIS FALLBACK ─────────────────────────────────────────────────────
+// ─── AI ANALYSIS ENDPOINT ─────────────────────────────────────────────────────
 
-app.post('/api/analyze', (req, res) => {
+app.post('/api/analyze', async (req, res) => {
   const data = req.body;
   if (!data || !data.home) return res.status(400).json({ error: 'Dati match mancanti' });
 
-  // Simulazione AI Engine Locale
-  let logic = `Analisi per ${data.home} vs ${data.away}: `;
-  if ((data.xgh || 0) > (data.gh || 0) + 0.5) logic += 'Forte pressione offensiva Home rilevata.';
-  else logic += 'Match in fase di stasi o equilibrato.';
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const prompt = `Analizza come un trader professionista di Betfair Exchange questo match live:
+    Match: ${data.home} vs ${data.away}
+    Minuto: ${data.minute}'
+    Punteggio: ${data.gh}-${data.ga}
+    xG: ${data.xgh}-${data.xga}
+    Statistiche: ${JSON.stringify(data.stats)}
+    
+    Fornisci un'analisi brevissima (max 2 righe) con suggerimento operativo (punta/banca/no bet).`;
 
-  res.json({ analysis: logic });
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+
+    res.json({ analysis: text });
+  } catch (err) {
+    console.error('💥 Gemini Error:', err.message);
+    res.json({ analysis: `⚠️ Errore AI: ${err.message}. Analisi manuale consigliata.` });
+  }
 });
 
 // ─── STATIC ROUTING ──────────────────────────────────────────────────────────
@@ -35,5 +53,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Founder Engine V9.2-CORE in esecuzione sulla porta ${PORT}`);
+  console.log(`🚀 Founder Engine V9.2.2-GEMINI pronto sulla porta ${PORT}`);
 });

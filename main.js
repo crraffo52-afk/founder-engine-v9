@@ -1,6 +1,6 @@
 /**
- * THE FOUNDER ENGINE V9.2 - CORE EDITION
- * Hub Strategico di Precisione (Senza Global Radar)
+ * THE FOUNDER ENGINE V9.2.2 - CORE GEMINI STABLE
+ * Hub Strategico di Precisione (Gemini AI Restored)
  */
 
 const byId = (id) => document.getElementById(id);

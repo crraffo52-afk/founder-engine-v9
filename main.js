@@ -384,6 +384,17 @@ function updateBookPreview(data) {
   
   let dynamicBets = [];
 
+  // Strategia PT EXPLOSION (Precisione 15-35 min)
+  if (min >= 15 && min <= 35 && totalGoals === 0 && daPerMin >= 0.8 && totalXG >= 0.4) {
+    dynamicBets.push({ 
+      label: 'PT EXPLOSION', 
+      pick: 'Over 0.5 Goal nel PT', 
+      odd: '1.80+', 
+      confidence: 'Alta', 
+      reason: `Pentola a pressione: ${daPerMin.toFixed(2)} DA/min e XG ${totalXG.toFixed(2)}. Gol atteso entro l'intervallo.` 
+    });
+  }
+
   // Goal/No Goal (BTTS) Advanced
   if (data.gh > 0 && data.ga > 0) {
     dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Entrambe Segnano (WIN)', odd: '-', confidence: 'Alta', reason: 'Pick già maturato. Valutare mercati continui.' });

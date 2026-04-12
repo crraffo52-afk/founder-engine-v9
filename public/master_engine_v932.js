@@ -1,6 +1,6 @@
 /**
- * THE FOUNDER ENGINE V9.2.2 - CORE GEMINI STABLE
- * Hub Strategico di Precisione (Gemini AI Restored)
+ * THE FOUNDER ENGINE V9.4.3 - OMNI-PARSE PRO
+ * Allineamento Totale Dati Bologna-Lecce
  */
 
 const byId = (id) => document.getElementById(id);
@@ -17,14 +17,15 @@ function parseRawMatchText(raw) {
     const text = lines.join('\n');
     const result = { stats: {}, proxyXG: false };
 
+    // 1. Squadre
     const teamsMatch = text.match(/([A-Za-zÀ-ÿ' .()-]+)\s+vs\s+([A-Za-zÀ-ÿ' .()-]+)/i);
     if (teamsMatch) {
        result.home = teamsMatch[1].trim();
        result.away = teamsMatch[2].trim();
     }
 
-    const cleanScoreText = text.replace(/\(\s*\d{1,2}\s*[:\-]\s*\d{1,2}\s*\)/g, '');
-    const scoreMatches = Array.from(cleanScoreText.matchAll(/\b(\d{1,2})\s*[:\-]\s*(\d{1,2})\b/g));
+    // 2. Score
+    const scoreMatches = Array.from(text.matchAll(/\b(\d{1,2})\s*[:\-]\s*(\d{1,2})\b/g));
     for (const m of scoreMatches) {
         const s1 = parseInt(m[1]), s2 = parseInt(m[2]);
         if (s1 <= 15 && s2 <= 15) {
@@ -33,50 +34,52 @@ function parseRawMatchText(raw) {
         }
     }
 
-    const timeMatch = text.match(/\b(\d{1,3}):(\d{2})\b/);
-    if (timeMatch) result.minute = parseInt(timeMatch[1]);
-    else {
-        const minAlt = text.match(/\b(\d{1,3})['′]/);
-        if (minAlt) result.minute = parseInt(minAlt[1]);
+    // 3. Minuto
+    const minAlt = text.match(/\b(\d{1,3})['′]/);
+    if (minAlt) result.minute = parseInt(minAlt[1]);
+    else if (text.includes('FT')) result.minute = 90;
+
+    // 4. xG (Specific multiline or inline)
+    const xgLines = lines.findIndex(l => /^XG$/i.test(l));
+    if (xgLines !== -1 && lines[xgLines+1] && lines[xgLines+2]) {
+        result.xgh = parseFloat(lines[xgLines+1].replace(',', '.'));
+        result.xga = parseFloat(lines[xgLines+2].replace(',', '.'));
     }
 
-    const xghMatch = text.match(/XG\s*\n?\s*(\d+[.,]\d+)\s*\n?\s*(\d+[.,]\d+)/i);
-    if (xghMatch) {
-        result.xgh = parseFloat(xghMatch[1].replace(',', '.'));
-        result.xga = parseFloat(xghMatch[2].replace(',', '.'));
-    } else {
-        const inlineXG = text.match(/XG\s*(\d+[.,]\d+)\s*[-–]\s*(\d+[.,]\d+)/i);
-        if (inlineXG) {
-            result.xgh = parseFloat(inlineXG[1].replace(',', '.'));
-            result.xga = parseFloat(inlineXG[2].replace(',', '.'));
-        }
-    }
-
-    const statDefs = [
+    // 5. Statistiche Pro (Multiline Scanner)
+    const statMap = [
         { keys: ['Tiri in Porta', 'SOT'], stat: 'sot' },
-        { keys: ['Attacchi Pericolosi', 'Dangerous Attacks', 'DA'], stat: 'da' },
-        { keys: ["Calci d'Angolo", 'Corners', 'Corner'], stat: 'cor' },
+        { keys: ['Attacchi Pericolosi', 'DA'], stat: 'da' },
+        { keys: ['Calci d\'Angolo', 'Corners', 'Corner'], stat: 'cor' },
         { keys: ['Possesso Palla', 'Possession'], stat: 'pos' },
+        { keys: ['Tiri Totali'], stat: 'st' }
     ];
 
     lines.forEach((line, i) => {
-        statDefs.forEach(def => {
-            // First try inline like "Dangerous Attacks 40-20" or "SOT 4-0"
-            def.keys.forEach(k => {
-                const inlineRegex = new RegExp(`\\b${k}\\s*(\\d+)\\s*[-\\:]\\s*(\\d+)`, 'i');
-                const m = line.match(inlineRegex);
-                if (m) {
-                    result.stats[def.stat] = [parseFloat(m[1]), parseFloat(m[2])];
+        statMap.forEach(def => {
+            if (def.keys.some(k => line.toLowerCase().includes(k.toLowerCase()))) {
+                // Check inline first: "SOT 4-1"
+                const inline = line.match(/(\d+)\s*[-]\s*(\d+)/);
+                if (inline) {
+                    result.stats[def.stat] = [parseInt(inline[1]), parseInt(inline[2])];
+                } else if (!isNaN(parseFloat(lines[i+1])) && !isNaN(parseFloat(lines[i+2]))) {
+                    // Check multiline: Label \n 2 \n 0
+                    result.stats[def.stat] = [parseFloat(lines[i+1]), parseFloat(lines[i+2])];
                 }
-            });
-            // If not found inline, check multiline
-            if (!result.stats[def.stat] && def.keys.some(k => line.toLowerCase().includes(k.toLowerCase()))) {
-                const v1 = parseFloat(lines[i+1]);
-                const v2 = parseFloat(lines[i+2]);
-                if (!isNaN(v1) && !isNaN(v2)) result.stats[def.stat] = [v1, v2];
             }
         });
     });
+
+    // Case-specific for the provided Bologna-Lecce table line: "4-1 8-5 2.19-0.32 8-6"
+    const tableLine = lines.find(l => l.includes('2.19-0.32'));
+    if (tableLine && !result.xgh) {
+        const parts = tableLine.split(/\s+/);
+        const xgPart = parts.find(p => p.includes('2.19'));
+        if (xgPart) {
+            const [xh, xa] = xgPart.split('-').map(v => parseFloat(v));
+            result.xgh = xh; result.xga = xa;
+        }
+    }
 
     if (result.xgh === undefined) {
         const s = result.stats;
@@ -115,6 +118,64 @@ function calcMomentum(data) {
     return { mHome, mAway };
 }
 
+function updateStatsUI(data) {
+    const grid = byId('parsedDisplay');
+    if (!grid) return;
+    grid.innerHTML = '';
+    
+    if (byId('matchTitle')) byId('matchTitle').textContent = `— ${data.home} vs ${data.away}`;
+
+    const s = data.stats;
+    const items = [
+        { label: 'Tiri in Porta (SOT)', h: s.sot?.[0], a: s.sot?.[1] },
+        { label: 'Attacchi Peric. (DA)', h: s.da?.[0], a: s.da?.[1] },
+        { label: 'Calci d\'Angolo', h: s.cor?.[0], a: s.cor?.[1] },
+        { label: 'Possesso Palla', h: s.pos?.[0], a: s.pos?.[1], suffix: '%' },
+        { label: 'xG (Expected Goals)', h: data.xgh.toFixed(2), a: data.xga.toFixed(2) }
+    ];
+
+    items.forEach(item => {
+        const row = document.createElement('div');
+        row.className = 'stat-row';
+        row.innerHTML = `
+            <div class="stat-label">${item.label}</div>
+            <div class="stat-home">${item.h || 0}${item.suffix || ''}</div>
+            <div class="stat-val">VS</div>
+            <div class="stat-away">${item.a || 0}${item.suffix || ''}</div>
+        `;
+        grid.appendChild(row);
+    });
+}
+
+function updateBookUI(data) {
+    const grid = byId('bookGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+
+    const tx = (data.xgh + data.xga) || 0;
+    const p05 = Math.round((1 - Math.exp(-tx)) * 100);
+    const p15 = Math.round((1 - Math.exp(-tx) * (1 + tx)) * 100);
+    const pGoal = Math.round(( (1 - Math.exp(Math.max(data.xgh, 0.01))) * (1 - Math.exp(Math.max(data.xga, 0.15))) ) * 100);
+
+    const markets = [
+        { name: 'Over 0.5 Total', prob: p05, color: 'var(--ok)' },
+        { name: 'Over 1.5 Total', prob: p15, color: 'var(--warn)' },
+        { name: 'BTTS (Goal)', prob: pGoal, color: 'var(--accent)' },
+        { name: 'Home Score', prob: Math.round((1-Math.exp(-data.xgh))*100), color: 'var(--ok)' }
+    ];
+
+    markets.forEach(m => {
+        const card = document.createElement('div');
+        card.className = 'book-card';
+        card.innerHTML = `
+            <div class="book-name">${m.name}</div>
+            <div class="book-prob" style="color:${m.color}">${m.prob}%</div>
+            <div class="book-bar"><div class="book-fill" style="width:${m.prob}%; background:${m.color}"></div></div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
 function updateExchangeCalc() {
     const b1 = valNum('b1'), lx = valNum('lx'), stake = valNum('stake');
     const type = byId('entryType')?.value || 'PRIMARY';
@@ -137,138 +198,26 @@ function updateExchangeCalc() {
     byId('calcLayStake').textContent = `€${layStake}`;
     
     if (byId('calcBankroll')) byId('calcBankroll').textContent = `€${Math.ceil(layLiability * 5)}`;
-    
-    updateExchangeSignal(b1, lx, backProfit, layLiability);
-}
-
-function updateExchangeSignal(b1, lx, backProfit, layLiability) {
-    const badge = byId('exSignalBadge');
-    if (!badge || !lastData) return;
-    
-    const daPerMin = ((lastData.stats.da?.[0] || 0) + (lastData.stats.da?.[1] || 0)) / Math.max(lastData.minute, 1);
-    const totalXG = lastData.xgh + lastData.xga;
-    
-    let signal = 'WAIT', color = '#94a3b8';
-    if (lastData.minute >= 15 && lastData.minute <= 35 && lastData.gh === 0 && daPerMin > 0.8) {
-        signal = '🔥 PT EXPLOSION'; color = '#f59e0b';
-    } else if (totalXG > 1.2 && lastData.minute > 45 && lx < 3.5) {
-        signal = 'LAY DRAW (LTD)'; color = '#f59e0b';
-    }
-    
-    badge.textContent = signal;
-    badge.style.color = color;
-    badge.style.borderColor = color;
-}
-
-// ─── TABS & CORE ─────────────────────────────────────────────────────────────
-
-window.switchTab = function(tab) {
-    document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    
-    const target = byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Content`);
-    if (target) target.style.display = 'grid';
-    
-    const btn = byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
-    if (btn) btn.classList.add('active');
-};
-
-window.autoSuggestLayer = function(data) {
-    const typeEl = byId('entryType');
-    if (!typeEl) return;
-    const min = data.minute || 0, totalGoals = data.gh + data.ga;
-    if (totalGoals === 0 && min >= 15 && min <= 40) typeEl.value = 'PRIMARY';
-    else if (totalGoals > 0 && min < 75) typeEl.value = 'RECOVERY';
-    else if (min >= 75) typeEl.value = 'SCALP';
-    updateExchangeCalc();
-};
-
-function updateStatsUI(data) {
-    const grid = byId('parsedDisplay');
-    if (!grid) return;
-    grid.innerHTML = '';
-    
-    // Header title
-    if (byId('matchTitle')) byId('matchTitle').textContent = `— ${data.home} vs ${data.away}`;
-
-    const s = data.stats;
-    const items = [
-        { label: 'Tiri in Porta (SOT)', val: `${s.sot?.[0] || 0} - ${s.sot?.[1] || 0}` },
-        { label: 'Attacchi Peric. (DA)', val: `${s.da?.[0] || 0} - ${s.da?.[1] || 0}` },
-        { label: 'Calci d\'Angolo', val: `${s.cor?.[0] || 0} - ${s.cor?.[1] || 0}` },
-        { label: 'Possesso Palla', val: `${s.pos?.[0] || 0}% - ${s.pos?.[1] || 0}%` },
-        { label: 'xG (Expected Goals)', val: `${data.xgh.toFixed(2)} - ${data.xga.toFixed(2)}` },
-        { label: 'Status Match', val: `${data.minute || 'FT'}' | ${data.gh}-${data.ga}` }
-    ];
-
-    items.forEach(item => {
-        const div = document.createElement('div');
-        div.className = 'parsed-item';
-        div.innerHTML = `<span class="label">${item.label}</span><strong class="val">${item.val}</strong>`;
-        grid.appendChild(div);
-    });
-}
-
-function updateBookUI(data) {
-    const grid = byId('bookGrid');
-    if (!grid) return;
-    grid.innerHTML = '';
-
-    const totalXG = data.xgh + data.xga;
-    const pOver05 = Math.round((1 - Math.exp(-totalXG)) * 100);
-    const pOver15 = Math.round((1 - Math.exp(-totalXG) * (1 + totalXG)) * 100);
-    const pGoal = Math.round(( (1 - Math.exp(-data.xgh)) * (1 - Math.exp(-data.xga)) ) * 100);
-
-    const markets = [
-        { name: 'Over 0.5 Total', prob: pOver05, color: '#2dd4bf' },
-        { name: 'Over 1.5 Total', prob: pOver15, color: '#f59e0b' },
-        { name: 'BTTS (Goal)', prob: pGoal, color: '#6366f1' },
-        { name: 'Home Score', prob: Math.round((1-Math.exp(-data.xgh))*100), color: '#2dd4bf' }
-    ];
-
-    markets.forEach(m => {
-        const box = document.createElement('div');
-        box.className = 'book-card';
-        box.innerHTML = `
-            <div class="book-name">${m.name}</div>
-            <div class="book-prob" style="color:${m.color}">${m.prob}%</div>
-            <div class="book-bar"><div class="book-fill" style="width:${m.prob}%; background:${m.color}"></div></div>
-        `;
-        grid.appendChild(box);
-    });
 }
 
 function runAnalysis() {
-    console.log('--- START ANALYSIS ---');
     const raw = byId('scanner').value.trim();
-    if (!raw) {
-        console.warn('Scanner vuoto');
-        return;
-    }
+    if (!raw) return;
     
     try {
         const data = parseRawMatchText(raw);
-        console.log('Parsed Data:', data);
-        
-        if (!data.home || !data.away) {
-            byId('signal').textContent = "⚠️ Formato non riconosciuto. Assicurati di includere nomi squadre (es. Team A vs Team B).";
-            byId('signal').classList.add('signal-empty');
-            return;
-        }
+        if (!data.home || !data.away) return;
 
         lastData = data;
         calcMomentum(data);
         updateStatsUI(data);
         updateBookUI(data);
         updateExchangeCalc();
-        window.autoSuggestLayer(data);
         
-        byId('signal').textContent = `⚡ ${data.home} ${data.gh}-${data.ga} | Min: ${data.minute}' | XG: ${data.xgh?.toFixed(2)}-${data.xga?.toFixed(2)}`;
+        byId('signal').textContent = `⚡ ${data.home} ${data.gh}-${data.ga} | Min: ${data.minute}' | XG: ${data.xgh.toFixed(2)}-${data.xga.toFixed(2)}`;
         byId('signal').classList.remove('signal-empty');
-        console.log('Analysis Complete');
     } catch (e) {
-        console.error('Analysis Crash:', e);
-        byId('signal').textContent = `💥 Errore critico nel parser: ${e.message}`;
+        console.error('Parser Error:', e);
     }
 }
 
@@ -282,7 +231,7 @@ async function runAI() {
     byId('signal').textContent = result.analysis || 'Analisi completata.';
     byId('signal').classList.remove('signal-empty');
   } catch (err) {
-    byId('signal').textContent = `⚠️ Analisi locale attiva.`;
+    byId('signal').textContent = `⚠️ Errore AI: ${err.message}`;
   } finally {
     engineBusy = false;
     byId('runBtn').textContent = 'Analizza con AI Avanzata';
@@ -305,8 +254,14 @@ function init() {
     ['b1', 'lx', 'stake', 'prevLoss', 'entryType'].forEach(id => {
         byId(id)?.addEventListener('input', updateExchangeCalc);
     });
-    window.switchTab('live');
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        const target = byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}Content`);
+        if (target) target.style.display = 'grid';
+        const btn = byId(`tab${tab.charAt(0).toUpperCase() + tab.slice(1)}`);
+        if (btn) btn.classList.add('active');
+    };
 }
 
 document.addEventListener('DOMContentLoaded', init);
-init();

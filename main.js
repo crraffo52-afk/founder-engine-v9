@@ -1054,6 +1054,201 @@ window.loadTracker = async function() {
       const isWinOrGreen = h.status === 'WIN' || (h.status === 'CASHOUT' && h.pnl > 0);
       const isLossOrRed = h.status === 'LOSE' || (h.status === 'CASHOUT' && h.pnl < 0);
       
+    setLoad('🧠 Elaborazione dati con Gemini AI...');
+    const data = await res.json();
+
+    loadSec.style.display = 'none';
+
+    // Render stats comparison
+    byId('pmStatsTitle').textContent = `${home} vs ${away}`;
+    byId('pmHomeStats').innerHTML = renderPMStats(data.home_stats, home);
+    byId('pmAwayStats').innerHTML = renderPMStats(data.away_stats, away);
+
+    // Render AI summary
+    const analysis = data.analysis;
+    byId('pmSummaryBox').textContent = analysis.summary || 'Analisi completata.';
+    byId('pmVerdictBadge').innerHTML = `
+      <span style="display:inline-block; padding:8px 28px; border-radius:30px; font-size:18px; font-weight:800;
+        background:${RATING_COLOR[analysis.verdict] || '#60aaff'}22;
+        border:2px solid ${RATING_COLOR[analysis.verdict] || '#60aaff'};
+        color:${RATING_COLOR[analysis.verdict] || '#60aaff'}; letter-spacing:3px;">
+        ${analysis.verdict} — Confidenza: ${analysis.confidence_overall}
+      </span>`;
+    byId('pmSummarySection').style.display = '';
+
+    // Render markets
+    renderMarketCards(analysis.markets || []);
+    byId('pmMarketsSection').style.display = '';
+
+    // Render telegram
+    byId('pmTelegramBox').innerHTML = `
+      <div style="font-size:14px; line-height:1.8; color:var(--accent);">
+        ${analysis.telegram_signal || 'Segnale non disponibile'}
+      </div>
+      <button onclick="navigator.clipboard.writeText('${(analysis.telegram_signal||'').replace(/'/g,"\\'")}').then(()=>this.textContent='✅ Copiato!')"
+        style="margin-top:10px; padding:6px 18px; border-radius:20px; border:1px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; font-size:12px;">
+        📋 Copia per Telegram
+      </button>`;
+    byId('pmTelegramSection').style.display = '';
+
+    byId('pmStatsSection').style.display = '';
+
+  } catch (err) {
+    loadSec.style.display = 'none';
+    byId('pmSummarySection').style.display = '';
+    byId('pmSummaryBox').innerHTML = `
+        <div style="color:var(--danger); border:1px solid var(--danger); padding:15px; border-radius:8px; background:rgba(244,63,94,0.05);">
+            <div style="font-weight:bold; margin-bottom:5px;">❌ ERRORE DI ANALISI</div>
+            <div style="font-size:12px;">${err.message}</div>
+            <div style="margin-top:10px; font-size:11px; color:var(--muted);">
+                Suggerimento: Se l'errore persiste, controlla se i nomi delle squadre sono corretti su Sbancobet (Serie A).
+            </div>
+        </div>`;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 SCOUT MATCH';
+  }
+};
+function renderMarketCards(markets) {
+  const grid = byId('pmMarketsGrid');
+  grid.innerHTML = markets.map(m => {
+    const col = RATING_COLOR[m.rating] || '#60aaff';
+    const confCol = CONF_COLOR[m.confidence] || '#999';
+    const isTop = m.name.includes('Miglior Scommessa') || m.name.includes('TOP PICK');
+    return `
+      <div class="pm-market-card ${isTop ? 'pm-market-top' : ''}" style="border-color:${col}44;">
+        <div class="pm-market-header">
+          <span class="pm-market-name">${isTop ? '⭐ ' : ''}${m.name}</span>
+          <span class="pm-market-rating" style="background:${col}22; color:${col}; border-color:${col};">${m.rating}</span>
+        </div>
+        <div class="pm-market-pick">${m.pick}</div>
+        <div class="pm-market-label" style="color:var(--muted); font-size:12px;">${m.label}</div>
+        <div class="pm-market-odds">
+          Quota target: <strong style="color:${col};">${m.quota_target}</strong>
+          <span class="pm-conf" style="color:${confCol};">● ${m.confidence}</span>
+        </div>
+        <div class="pm-market-reasoning">${m.reasoning}</div>
+      </div>`;
+  }).join('');
+}
+
+// ─── TRACKER LOGIC ────────────────────────────────────────────────────────────
+
+window.saveTrackerPick = async function(label, pick, oddRef) {
+  if (!lastData || !lastData.home) return alert('Dati match mancanti!');
+  const match = `${lastData.home} - ${lastData.away}`;
+  
+  // Richiedi dati reali per l'Exchange
+  let defOdd = document.getElementById('lx')?.value || document.getElementById('b1')?.value || oddRef.replace('+', '') || '2.0';
+  let defStake = document.getElementById('stake')?.value || '10';
+  
+  const input = prompt(`Salvataggio Exchange: Inserisci QUOTA e STAKE (es. "3.50 20").\nDefault: ${defOdd} quota, €${defStake} stake.`, `${defOdd} ${defStake}`);
+  if (input === null) return; // Cancelled
+  
+  const parts = input.trim().split(/\s+/);
+  const odd = parseFloat(parts[0]) || parseFloat(defOdd);
+  const stake = parts.length > 1 ? parseFloat(parts[1]) : parseFloat(defStake);
+  
+  try {
+    const res = await fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ match, label, pick, odd, stake })
+    });
+    if (res.ok) {
+      alert(`✅ Trade salvato! (Quota: ${odd}, Stake: €${stake})`);
+      loadTracker();
+    }
+  } catch (e) {
+    console.error('Save error', e);
+  }
+};
+
+window.updateTrackerStatus = async function(id, action) {
+  let pnl = 0;
+  let finalStatus = action;
+
+  if (action === 'CASHOUT') {
+    const input = prompt("Inserisci il PnL reale (es. +4.50 o -1.20):", "0.00");
+    if (input === null) return;
+    pnl = parseFloat(input);
+    if (isNaN(pnl)) return alert("Valore non valido!");
+  } else if (action === 'FULL_WIN') {
+    // We let the API update UI, but wait we need to calculate max pnl?
+    // Max PnL string parsing requires knowing if it was back or lay.
+    // For simplicity, we just prompt also for FULL WIN/LOSS or let user insert cashout for everything.
+    const input = prompt("Inserisci PnL netto finale per la vittoria:", "+10.00");
+    if (input === null) return;
+    pnl = parseFloat(input);
+    finalStatus = 'WIN';
+  } else if (action === 'FULL_LOSS') {
+    const input = prompt("Inserisci Perdita (Liability/Stake) in negativo:", "-10.00");
+    if (input === null) return;
+    pnl = parseFloat(input);
+    finalStatus = 'LOSE';
+  } else if (action === 'VOID') {
+    pnl = 0;
+    finalStatus = 'VOID';
+  }
+
+  try {
+    await fetch(`/api/history/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: finalStatus, pnl })
+    });
+    loadTracker();
+  } catch (e) {
+    console.error('Update error', e);
+  }
+};
+
+window.loadTracker = async function() {
+  try {
+    const res = await fetch('/api/history');
+    if (!res.ok) return;
+    const history = await res.json();
+    
+    let wins = 0, losses = 0, totalPnl = 0;
+    
+    // Sort descending by date
+    history.sort((a,b) => new Date(b.date) - new Date(a.date));
+    history.forEach(h => {
+      if (h.status === 'WIN' || h.status === 'CASHOUT') {
+        if (h.pnl > 0) wins++;
+        else if (h.pnl < 0) losses++; // Cashout negativo è considerato loss nelle stat
+        totalPnl += parseFloat(h.pnl) || 0;
+      } else if (h.status === 'LOSE') {
+        losses++;
+        totalPnl += parseFloat(h.pnl) || 0;
+      }
+    });
+    
+    const totalFinished = wins + losses;
+    const winRate = totalFinished > 0 ? ((wins / totalFinished) * 100).toFixed(1) : 0;
+    
+    byId('trTotal').textContent = history.length;
+    byId('trWinRate').textContent = `${winRate}%`;
+    byId('trPnL').textContent = `€${totalPnl.toFixed(2)}`;
+    byId('trPnL').className = `ex-metric-val ${totalPnl >= 0 ? 'ok' : 'danger'}`;
+    
+    const recent = history.filter(h => h.status !== 'PENDING' && h.status !== 'VOID').slice(0, 10);
+    const recentWins = recent.filter(h => (h.pnl || 0) > 0).length;
+    const strike = recent.length > 0 ? ((recentWins / recent.length) * 100).toFixed(0) : 0;
+    byId('trStrike').textContent = `${strike}% (${recentWins}/${recent.length})`;
+
+    const tbody = byId('trackerTableBody');
+    if (history.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="padding:20px; text-align:center; color:var(--muted)">Nessun salvataggio trovato.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = history.map(h => {
+      const dateStr = new Date(h.date).toLocaleDateString() + ' ' + new Date(h.date).toLocaleTimeString([],{hour:'2-digit', minute:'2-digit'});
+      const isPending = h.status === 'PENDING';
+      const isWinOrGreen = h.status === 'WIN' || (h.status === 'CASHOUT' && h.pnl > 0);
+      const isLossOrRed = h.status === 'LOSE' || (h.status === 'CASHOUT' && h.pnl < 0);
+      
       const rowStyle = isWinOrGreen ? 'border-left: 3px solid var(--ok); background:rgba(45,212,191,0.05);' : 
                        isLossOrRed ? 'border-left: 3px solid var(--danger); background:rgba(244,63,94,0.05);' : 
                        'border-left: 3px solid var(--muted);';
@@ -1090,118 +1285,147 @@ window.loadTracker = async function() {
 
 // ─── GLOBAL SCANNER (INPLAYGURU CLONE) ─────────────────────────────────────────
 
-let globalScannerTimer = null;
-
-window.fetchGlobalScanner = async function(isAutoRefresh = false) {
+window.parseRawScannerData = function() {
+  const input = byId('rawGlobalInput');
   const table = byId('globalScannerTable');
   const countSpan = byId('globalScannerCount');
-  if(!table) return;
-
-  // Mostra lo spinner solo la prima volta, per evitare sfarfallii ad ogni auto-refresh
-  if (!isAutoRefresh) {
-    table.innerHTML = '<tr><td colspan="8" style="padding:20px; text-align:center;"><div class="spinner" style="margin:auto; border-color:var(--accent); border-right-color:transparent; width:24px; height:24px; border-style:solid; border-width:2px; border-radius:50%; animation:spin 1s linear infinite;"></div></td></tr>';
+  
+  if(!input || !table) return;
+  
+  const text = input.value.trim();
+  if (!text) {
+    table.innerHTML = '<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--danger);">Incolla il testo massivo raw prima di avviare il Radar.</td></tr>';
+    return;
   }
 
-  // Gestione timer auto-refresh
-  if (!globalScannerTimer) {
-     globalScannerTimer = setInterval(() => {
-         const globalTab = byId('tabGlobalContent');
-         if (globalTab && globalTab.style.display !== 'none') {
-             window.fetchGlobalScanner(true);
-         }
-     }, 60000); // 60 secondi
-  }
+  table.innerHTML = '<tr><td colspan="8" style="padding:20px; text-align:center;"><div class="spinner" style="margin:auto; border-color:var(--accent); border-right-color:transparent; width:24px; height:24px; border-style:solid; border-width:2px; border-radius:50%; animation:spin 1s linear infinite;"></div></td></tr>';
 
-  try {
-    const res = await fetch('/api/scanner-live');
-    if (!res.ok) throw new Error('API request failed');
-    const matches = await res.json();
-    
-    countSpan.textContent = `(${matches.length} Live)`;
+  setTimeout(() => {
+    try {
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+      const matches = [];
+      let m = null;
 
-    if (matches.length === 0) {
-      if (!isAutoRefresh) table.innerHTML = '<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted);">Nessuna partita in corso trovata.</td></tr>';
-      return;
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+
+        // Riconoscitore Match Boundary
+        if (line.includes(' vs ')) {
+          const parts = line.split(' vs ');
+          const home = parts[0].trim();
+          if (m && m.home === home) continue; // Ripetizione dello stesso match
+          
+          if (m && (m.xgh > 0 || m.stats.da[0] > 0)) {
+             matches.push(m);
+          }
+          m = { id: Math.random().toString(), league: 'Scanned', minute: 1, gh:0, ga:0, xgh:0, xga:0, stats: { da:[0,0], sot:[0,0], pos:[50,50] } };
+          m.home = home;
+          m.away = parts[1].trim();
+        }
+        
+        if (!m) continue;
+
+        // Riconoscitore Minuto Live
+        if (line.match(/^(\d{1,3}):\d{2}$/)) m.minute = parseInt(line.split(':')[0], 10);
+        else if (line.match(/^(\d{1,3})'$/)) m.minute = parseInt(line.replace("'", ""), 10);
+
+        // Blocco Statistiche Multi-linea (InPlayGuru)
+        if (line === 'Goal' && i+2 < lines.length && !isNaN(lines[i+1])) { m.gh = parseInt(lines[i+1]); m.ga = parseInt(lines[i+2]); }
+        if (line === 'XG' && i+2 < lines.length && !isNaN(lines[i+1])) { m.xgh = parseFloat(lines[i+1]); m.xga = parseFloat(lines[i+2]); }
+        if (line === 'Attacchi Pericolosi' && i+2 < lines.length && !isNaN(lines[i+1])) { m.stats.da[0] = parseInt(lines[i+1]); m.stats.da[1] = parseInt(lines[i+2]); }
+        if (line === 'Tiri in Porta' && i+2 < lines.length && !isNaN(lines[i+1])) { m.stats.sot[0] = parseInt(lines[i+1]); m.stats.sot[1] = parseInt(lines[i+2]); }
+        if (line === 'Possesso Palla' && i+2 < lines.length && lines[i+1].includes('%')) { m.stats.pos[0] = parseInt(lines[i+1].replace('%','')); m.stats.pos[1] = parseInt(lines[i+2].replace('%','')); }
+
+        // Fallback Single-line
+        if (line.startsWith('XG ') && line.match(/[\d.]+/g)) { const v=line.match(/[\d.]+/g); if(v.length>=2){ m.xgh=parseFloat(v[0]); m.xga=parseFloat(v[1]); } }
+        if (line.startsWith('Attacchi Pericolosi ')) { const v=line.match(/\d+/g); if(v&&v.length>=2){ m.stats.da[0]=parseInt(v[0]); m.stats.da[1]=parseInt(v[1]); } }
+      }
+      if (m && (m.xgh !== undefined || m.stats.da[0] > 0)) matches.push(m);
+
+      countSpan.textContent = `(${matches.length} Match Raw)`;
+
+      if (matches.length === 0) {
+        table.innerHTML = '<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted);">Nessuna partita riconosciuta. Assicurati di copiare il testo contenente " vs " e "Attacchi Pericolosi".</td></tr>';
+        return;
+      }
+
+      // Applicazione Matematica OMNI-ENGINE
+      const processed = matches.map(match => {
+        const min = Math.max(match.minute || 1, 1);
+        const mGoalsH = match.gh || 0;
+        const mGoalsA = match.ga || 0;
+        const totalXG = match.xgh + match.xga;
+        const threatH = Math.max(0, match.xgh - mGoalsH);
+        const threatA = Math.max(0, match.xga - mGoalsA);
+        const dah = match.stats.da[0], daa = match.stats.da[1];
+        const soth = match.stats.sot[0], sota = match.stats.sot[1];
+        const posH = match.stats.pos[0] || 50;
+        
+        const timeDecay = Math.min(min / 90, 1) + 0.5;
+        const homeScore = Math.max(0, (threatH * 35 * timeDecay) + (match.xgh * 10) + (posH * 0.3) + (soth * 6) + (dah * 1.8));
+        const awayScore = Math.max(0, (threatA * 35 * timeDecay) + (match.xga * 10) + ((100 - posH) * 0.3) + (sota * 6) + (daa * 1.8));
+        
+        const totScore = Math.max(homeScore + awayScore, 1);
+        const mHome = Math.round((homeScore / totScore) * 100);
+        const mAway = 100 - mHome;
+        
+        const daTotal = dah + daa;
+        const daPerMin = daTotal / min;
+        
+        let signal = 'WAIT';
+        let signalColor = 'var(--muted)';
+        const gap = Math.abs(mHome - mAway);
+        const isSurge = gap > 40;
+        
+        if (isSurge && mHome > 70 && threatH > 0.4 && min > 45) { signal = 'BUY HOME (SURGE)'; signalColor = '#2dd4bf'; }
+        else if (isSurge && mAway > 70 && threatA > 0.4 && min > 45) { signal = 'BUY AWAY (SURGE)'; signalColor = '#2dd4bf'; }
+        else if (mGoalsH === mGoalsA && totalXG > 1.2 && daPerMin > 0.8 && min > 50 && min < 80) { signal = 'LAY DRAW (LTD)'; signalColor = '#f59e0b'; }
+        else if (daPerMin > 1.2 && totalXG > mGoalsH + mGoalsA + 0.5) { signal = 'OVER ALERT'; signalColor = '#38bdf8'; }
+
+        return { ...match, mGoalsH, mGoalsA, mHome, mAway, daPerMin, isSurge, signal, signalColor };
+      });
+
+      processed.sort((a, b) => {
+        if (a.signal !== 'WAIT' && b.signal === 'WAIT') return -1;
+        if (a.signal === 'WAIT' && b.signal !== 'WAIT') return 1;
+        return b.daPerMin - a.daPerMin;
+      });
+
+      table.innerHTML = processed.map(p => `
+        <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background:${p.signal !== 'WAIT' ? 'rgba(45,212,191,0.05)' : 'transparent'};">
+          <td style="padding:10px; vertical-align:middle;">
+            <span style="color:${p.minute > 75 ? 'var(--danger)' : 'var(--accent)'}; font-weight:bold;">${p.minute}'</span>
+          </td>
+          <td style="padding:10px; vertical-align:middle; font-weight:500;">
+            <div style="font-size:10px; color:var(--muted);">${p.league}</div>
+            ${p.home} <br> ${p.away}
+          </td>
+          <td style="padding:10px; vertical-align:middle; text-align:center;">
+            <span style="padding:4px 8px; background:var(--bg-lighter); font-weight:bold; border-radius:4px;">${p.mGoalsH} - ${p.mGoalsA}</span>
+          </td>
+          <td style="padding:10px; vertical-align:middle; color:var(--muted);">${p.xgh.toFixed(2)} - ${p.xga.toFixed(2)}</td>
+          <td style="padding:10px; vertical-align:middle;">
+            <span style="color:${p.daPerMin > 1.0 ? 'var(--ok)' : 'var(--text)'}; font-weight:bold;">${p.daPerMin.toFixed(2)}</span>
+          </td>
+          <td style="padding:10px; vertical-align:middle; color:var(--muted);">${p.stats.sot[0]} - ${p.stats.sot[1]}</td>
+          <td style="padding:10px; vertical-align:middle;">
+            <div style="display:flex; width:80px; height:8px; border-radius:4px; overflow:hidden; background:var(--bg-lighter);">
+              <div style="width:${p.mHome}%; background:var(--ok);"></div>
+              <div style="width:${100 - p.mHome}%; background:var(--danger);"></div>
+            </div>
+            <div style="font-size:10px; margin-top:4px; color:var(--muted);">${p.mHome}% - ${100 - p.mHome}%</div>
+          </td>
+          <td style="padding:10px; vertical-align:middle;">
+            <span style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:12px; background:${p.signalColor}22; color:${p.signalColor}; border:1px solid ${p.signalColor}55;">
+              ${p.signal}
+            </span>
+          </td>
+        </tr>
+      `).join('');
+
+    } catch (err) {
+      table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--danger);">Errore nel Lexer OMNI-PARSE: ${err.message}. Controlla la validità del testo incollato.</td></tr>`;
     }
-
-    // Process each match using OMNI-ENGINE math
-    const processed = matches.map(m => {
-      const min = Math.max(m.minute || 1, 1);
-      const mGoalsH = m.gh || 0;
-      const mGoalsA = m.ga || 0;
-      const totalXG = m.xgh + m.xga;
-      const threatH = Math.max(0, m.xgh - mGoalsH);
-      const threatA = Math.max(0, m.xga - mGoalsA);
-      const dah = m.stats.da[0], daa = m.stats.da[1];
-      const soth = m.stats.sot[0], sota = m.stats.sot[1];
-      const posH = m.stats.pos[0];
-      
-      const timeDecay = Math.min(min / 90, 1) + 0.5;
-      const homeScore = Math.max(0, (threatH * 35 * timeDecay) + (m.xgh * 10) + (posH * 0.3) + (soth * 6) + (dah * 1.8));
-      const awayScore = Math.max(0, (threatA * 35 * timeDecay) + (m.xga * 10) + ((100 - posH) * 0.3) + (sota * 6) + (daa * 1.8));
-      
-      const totScore = Math.max(homeScore + awayScore, 1);
-      const mHome = Math.round((homeScore / totScore) * 100);
-      const mAway = 100 - mHome;
-      
-      const daTotal = dah + daa;
-      const daPerMin = daTotal / min;
-      
-      let signal = 'WAIT';
-      let signalColor = 'var(--muted)';
-      const gap = Math.abs(mHome - mAway);
-      const isSurge = gap > 40;
-      
-      // Auto-Detect Signal Without Odds
-      if (isSurge && mHome > 70 && threatH > 0.4 && min > 45) { signal = 'BUY HOME (SURGE)'; signalColor = '#2dd4bf'; }
-      else if (isSurge && mAway > 70 && threatA > 0.4 && min > 45) { signal = 'BUY AWAY (SURGE)'; signalColor = '#2dd4bf'; }
-      else if (mGoalsH === mGoalsA && totalXG > 1.2 && daPerMin > 0.8 && min > 50 && min < 80) { signal = 'LAY DRAW (LTD)'; signalColor = '#f59e0b'; }
-      else if (daPerMin > 1.2 && totalXG > mGoalsH + mGoalsA + 0.5) { signal = 'OVER ALERT'; signalColor = '#38bdf8'; }
-
-      return { ...m, mGoalsH, mGoalsA, mHome, mAway, daPerMin, isSurge, signal, signalColor };
-    });
-
-    // Sort: SURGE signals first, then by DA/min
-    processed.sort((a, b) => {
-      if (a.signal !== 'WAIT' && b.signal === 'WAIT') return -1;
-      if (a.signal === 'WAIT' && b.signal !== 'WAIT') return 1;
-      return b.daPerMin - a.daPerMin;
-    });
-
-    table.innerHTML = processed.map(p => `
-      <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); background:${p.signal !== 'WAIT' ? 'rgba(45,212,191,0.05)' : 'transparent'};">
-        <td style="padding:10px; vertical-align:middle;">
-          <span style="color:${p.minute > 75 ? 'var(--danger)' : 'var(--accent)'}; font-weight:bold;">${p.minute}'</span>
-        </td>
-        <td style="padding:10px; vertical-align:middle; font-weight:500;">
-          <div style="font-size:10px; color:var(--muted);">${p.league}</div>
-          ${p.home} <br> ${p.away}
-        </td>
-        <td style="padding:10px; vertical-align:middle; text-align:center;">
-          <span style="padding:4px 8px; background:var(--bg-lighter); font-weight:bold; border-radius:4px;">${p.mGoalsH} - ${p.mGoalsA}</span>
-        </td>
-        <td style="padding:10px; vertical-align:middle; color:var(--muted);">${p.xgh.toFixed(2)} - ${p.xga.toFixed(2)}</td>
-        <td style="padding:10px; vertical-align:middle;">
-          <span style="color:${p.daPerMin > 1.0 ? 'var(--ok)' : 'var(--text)'}; font-weight:bold;">${p.daPerMin.toFixed(2)}</span>
-        </td>
-        <td style="padding:10px; vertical-align:middle; color:var(--muted);">${p.stats.sot[0]} - ${p.stats.sot[1]}</td>
-        <td style="padding:10px; vertical-align:middle;">
-          <div style="display:flex; width:80px; height:8px; border-radius:4px; overflow:hidden; background:var(--bg-lighter);">
-            <div style="width:${p.mHome}%; background:var(--ok);"></div>
-            <div style="width:${100 - p.mHome}%; background:var(--danger);"></div>
-          </div>
-          <div style="font-size:10px; margin-top:4px; color:var(--muted);">${p.mHome}% - ${100 - p.mHome}%</div>
-        </td>
-        <td style="padding:10px; vertical-align:middle;">
-          <span style="padding:4px 8px; font-size:11px; font-weight:bold; border-radius:12px; background:${p.signalColor}22; color:${p.signalColor}; border:1px solid ${p.signalColor}55;">
-            ${p.signal}
-          </span>
-        </td>
-      </tr>
-    `).join('');
-
-  } catch (err) {
-    table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--danger);">Errore caricamento radar: ${err.message}</td></tr>`;
-  }
+  }, 100);
 };
 

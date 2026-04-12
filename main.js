@@ -173,6 +173,13 @@ window.fetchGlobalScanner = async function() {
     try {
         const res = await fetch('/api/scanner-live');
         const data = await res.json();
+        
+        if (!Array.isArray(data)) {
+            console.error('Radar Error: Expected array but received', data);
+            table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--warn)">⚠️ Radar momentaneamente indisponibile. Riprova tra poco.</td></tr>`;
+            return;
+        }
+
         if (data.length === 0) {
             table.innerHTML = `<tr><td colspan="8" style="padding:20px; text-align:center; color:var(--muted)">Nessun match live rilevato nel Radar.</td></tr>`;
             return;

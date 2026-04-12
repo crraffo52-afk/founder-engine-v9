@@ -199,61 +199,56 @@ app.post('/api/prematch', async (req, res) => {
 
 let liveScannerCache = { data: [], timestamp: 0 };
 
-app.get('/api/scanner-live', async (req, res) => {
-  try {
-    const apiKey = (process.env.API_FOOTBALL_KEY || '').trim();
-    
-    // Se la chiave è mancante o troppo corta (placeholder), avvia simulazione
-    if (apiKey.length < 20) {
-      console.warn(`⚠️ API_FOOTBALL_KEY (${apiKey.length} chars) non valida o mancante. Avvio modalità SIMULAZIONE.`);
-      return res.json([
+    const simulatedData = [
         { id: 1, league: 'Premier League', minute: 24, home: 'Chelsea', away: 'Man City', gh: 0, ga: 0, xgh: 0.20, xga: 0.11, stats: { da: [14, 35], sot: [1, 0], pos: [34, 66] } },
         { id: 2, league: 'Serie A', minute: 65, home: 'Inter', away: 'Milan', gh: 1, ga: 1, xgh: 1.45, xga: 1.10, stats: { da: [45, 42], sot: [4, 3], pos: [52, 48] } },
         { id: 3, league: 'Bundesliga', minute: 15, home: 'B. Munich', away: 'Dortmund', gh: 0, ga: 0, xgh: 0.85, xga: 0.12, stats: { da: [22, 10], sot: [3, 0], pos: [70, 30] } }
-      ]);
-    }
+    ];
 
-    // Cache di 60 secondi per non bruciare la quota API
-    if (Date.now() - liveScannerCache.timestamp < 60000 && liveScannerCache.data.length > 0) {
-      return res.json(liveScannerCache.data);
-    }
-
-    const response = await fetch('https://v3.football.api-sports.io/fixtures?live=all', {
-      headers: { 'x-apisports-key': apiKey }
-    });
-    const json = await response.json();
+    const apiKey = (process.env.API_FOOTBALL_KEY || '').trim();
     
-    if (json.errors && Object.keys(json.errors).length > 0) {
-        const errorMsg = Object.values(json.errors)[0];
-        throw new Error(errorMsg);
+    // Se la chiave è mancante o troppo corta, avvia simulazione immediata
+    if (apiKey.length < 20) {
+      console.warn('⚠️ API_FOOTBALL_KEY non valida. Modalità SIMULAZIONE.');
+      return res.json(simulatedData);
     }
 
-    const matches = (json.response || []).map(m => {
-      return {
-        id: m.fixture?.id,
-        league: m.league?.name,
-        minute: m.fixture?.status?.elapsed || 0,
-        home: m.teams?.home?.name,
-        away: m.teams?.away?.name,
-        gh: m.goals?.home || 0,
-        ga: m.goals?.away || 0,
-        xgh: parseFloat((Math.random() * 2).toFixed(2)),
-        xga: parseFloat((Math.random() * 2).toFixed(2)),
-        stats: {
-          da: [Math.floor(Math.random() * 50), Math.floor(Math.random() * 50)],
-          sot: [Math.floor(Math.random() * 6), Math.floor(Math.random() * 6)],
-          pos: [50, 50]
+    try {
+        // Cache di 60 secondi
+        if (Date.now() - liveScannerCache.timestamp < 60000 && liveScannerCache.data.length > 0) {
+            return res.json(liveScannerCache.data);
         }
-      };
-    });
 
-    liveScannerCache = { data: matches, timestamp: Date.now() };
-    res.json(matches);
+        const response = await fetch('https://v3.football.api-sports.io/fixtures?live=all', {
+            headers: { 'x-apisports-key': apiKey },
+            signal: AbortSignal.timeout(10000)
+        });
+        const json = await response.json();
+        
+        if (json.errors && Object.keys(json.errors).length > 0) {
+            throw new Error(Object.values(json.errors)[0]);
+        }
 
-  } catch (err) {
-    console.error('💥 Live Scanner Error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
+        const matches = (json.response || []).map(m => ({
+            id: m.fixture?.id,
+            league: m.league?.name,
+            minute: m.fixture?.status?.elapsed || 1,
+            home: m.teams?.home?.name,
+            away: m.teams?.away?.name,
+            gh: m.goals?.home || 0,
+            ga: m.goals?.away || 0,
+            xgh: 0, xga: 0,
+            stats: { da: [0,0], sot: [0,0], pos: [50,50] }
+        }));
+
+        liveScannerCache = { data: matches, timestamp: Date.now() };
+        res.json(matches);
+
+    } catch (err) {
+        console.error('💥 API Radar Error:', err.message);
+        console.warn('🔄 Fallback alla modalità SIMULAZIONE per prevenire blocchi UI.');
+        res.json(simulatedData);
+    }
 });
 
 let serverLogs = [];

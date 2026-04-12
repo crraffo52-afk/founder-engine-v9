@@ -1,6 +1,10 @@
-const express = require('express');
-const path = require('path');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -9,13 +13,13 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname)));
 
 // ─── GEMINI AI SETUP ───────────────────────────────────────────────────────────
-const GEMINI_KEY = "AIzaSyB4At3SgZV3p19HL9QWfm-rmSWXI4RzOnc";
+const GEMINI_KEY = process.env.GEMINI_API_KEY || "AIzaSyB4At3SgZV3p19HL9QWfm-rmSWXI4RzOnc";
 const genAI = new GoogleGenerativeAI(GEMINI_KEY);
 
 // ─── LOGGING & BASE ───────────────────────────────────────────────────────────
 
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', version: '9.3.1-MASTER', mode: 'Live-Focus' });
+  res.json({ status: 'OK', version: '9.3.2-MASTER-ESM', mode: 'Live-Focus' });
 });
 
 // ─── AI ANALYSIS ENDPOINT ─────────────────────────────────────────────────────
@@ -53,5 +57,5 @@ app.get('*', (req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Founder Engine V9.2.2-GEMINI pronto sulla porta ${PORT}`);
+  console.log(`🚀 Founder Engine V9.3.2 (ESM) pronto sulla porta ${PORT}`);
 });

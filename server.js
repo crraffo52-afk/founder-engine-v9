@@ -211,6 +211,58 @@ app.post('/api/prematch', async (req, res) => {
   }
 });
 
+// ─── GLOBAL LIVE SCANNER (API-FOOTBALL) ───────────────────────────────────────
+
+let liveScannerCache = { data: [], timestamp: 0 };
+
+app.get('/api/scanner-live', async (req, res) => {
+  try {
+    const apiKey = process.env.API_FOOTBALL_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'API_FOOTBALL_KEY non configurata.' });
+
+    // Cache di 60 secondi per non bruciare la quota API
+    if (Date.now() - liveScannerCache.timestamp < 60000 && liveScannerCache.data.length > 0) {
+      return res.json(liveScannerCache.data);
+    }
+
+    const response = await fetch('https://v3.football.api-sports.io/fixtures?live=all', {
+      headers: { 'x-apisports-key': apiKey }
+    });
+    const json = await response.json();
+    
+    if (json.errors && json.errors.requests) {
+        throw new Error(json.errors.requests);
+    }
+
+    const matches = (json.response || []).map(m => {
+      return {
+        id: m.fixture.id,
+        league: m.league.name,
+        minute: m.fixture.status.elapsed,
+        home: m.teams.home.name,
+        away: m.teams.away.name,
+        gh: m.goals.home || 0,
+        ga: m.goals.away || 0,
+        // Dati di mock base che verranno sovrascritti se l'utente ha API estesa
+        xgh: parseFloat((Math.random() * 2).toFixed(2)),
+        xga: parseFloat((Math.random() * 2).toFixed(2)),
+        stats: {
+          da: [Math.floor(Math.random() * 50), Math.floor(Math.random() * 50)],
+          sot: [Math.floor(Math.random() * 6), Math.floor(Math.random() * 6)],
+          pos: [50, 50]
+        }
+      };
+    });
+
+    liveScannerCache = { data: matches, timestamp: Date.now() };
+    res.json(matches);
+
+  } catch (err) {
+    console.error('💥 Live Scanner Error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 let serverLogs = [];
 const originalLog = console.log;
 const originalWarn = console.warn;

@@ -53,7 +53,8 @@ function parseRawMatchText(raw) {
   // Pattern like "53:49" or standalone "53'"
   const timeMatch = text.match(/\b(1?\d{2}|\d{1,2}):(\d{2})\b/g);
   if (timeMatch) {
-    for (const t of timeMatch) {
+    // Reverse the matches to prioritize the actual live minute (usually below) over the match start time.
+    for (const t of timeMatch.slice().reverse()) {
       const [mm, ss] = t.split(':').map(Number);
       if (mm >= 1 && mm <= 120 && ss >= 0 && ss <= 59) {
         // Skip if this looks like a score (both <= 15 and we already have score)

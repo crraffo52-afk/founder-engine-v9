@@ -562,36 +562,53 @@ function updateStrategicGuide(data, metrics = {}) {
 function updateExchangeCalc() {
   const b1 = parseFloat(byId('b1')?.value) || 0;
   const lx = parseFloat(byId('lx')?.value) || 0;
-  const stake = parseFloat(byId('stake')?.value) || 0;
-  const bank = parseFloat(byId('bank')?.value) || 100;
+  const stakeValue = parseFloat(byId('stake')?.value) || 10;
+  const type = byId('entryType')?.value || 'PRIMARY';
+  const prevLoss = parseFloat(byId('prevLoss')?.value) || 0;
 
-  if (!b1 || !lx || !stake) return;
+  const recBox = byId('recoveryBox');
+  if (recBox) recBox.style.display = type === 'RECOVERY' ? 'block' : 'none';
 
-  const commission = 0.05; // 5% Betfair base commission
+  if (!b1 || !lx) return;
 
-  // Core exchange calculations
-  const grossProfit = stake * (b1 - 1);
+  const commission = 0.05;
+  let activeStake = stakeValue;
+
+  if (type === 'RECOVERY' && prevLoss > 0) {
+    activeStake = parseFloat((prevLoss / ((b1 - 1) * (1 - commission))).toFixed(2));
+    byId('stake').value = activeStake;
+  }
+
+  const grossProfit = activeStake * (b1 - 1);
   const backProfit = parseFloat((grossProfit * (1 - commission)).toFixed(2));
-  
-  const layStake = parseFloat(((stake * b1) / lx).toFixed(2));
+  const layStake = parseFloat(((activeStake * b1) / lx).toFixed(2));
   const layLiability = parseFloat((layStake * (lx - 1)).toFixed(2));
-  
-  // Break-Even considering commission
-  const breakEven = parseFloat((b1 * stake / (stake + backProfit) + 1).toFixed(2));
+  const breakEven = parseFloat((b1 * activeStake / (activeStake + backProfit) + 1).toFixed(2));
 
-  // Precision Green-up targets (35% target, 15% strict SL)
   const greenTarget = parseFloat((backProfit * 0.35).toFixed(2));
-  const stopLoss = parseFloat((stake * 0.15).toFixed(2)); // Strict 15% liability stop
-  const roi = parseFloat(((backProfit / stake) * 100).toFixed(1));
+  const stopLoss = parseFloat((activeStake * 0.15).toFixed(2));
+  const roi = parseFloat(((backProfit / activeStake) * 100).toFixed(1));
 
-  // Precision EV Calculation (True Odds simulation)
   const impliedProb = b1 > 0 ? 1 / b1 : 0;
-  const marginAdjustment = 0.95; // Account for market efficiency
-  const trueProb = impliedProb * marginAdjustment;
-  const ev = parseFloat(((trueProb * backProfit) - ((1 - trueProb) * stake)).toFixed(2));
+  const trueProb = impliedProb * 0.95;
+  const ev = parseFloat(((trueProb * backProfit) - ((1 - trueProb) * activeStake)).toFixed(2));
 
-  // Update UI
   byId('calcBackProfit').textContent = `€${backProfit}`;
+  byId('calcLayLiability').textContent = `€${layLiability}`;
+  byId('calcLayStake').textContent = `€${layStake}`;
+  byId('calcBreakEven').textContent = breakEven.toFixed(2);
+  byId('calcGreenTarget').textContent = `€${greenTarget}`;
+  byId('calcStopLoss').textContent = `-€${stopLoss}`;
+  byId('calcROI').textContent = `${roi}%`;
+  byId('calcEV').textContent = ev >= 0 ? `+€${ev}` : `-€${Math.abs(ev)}`;
+  
+  const recBank = Math.max(100, Math.ceil(layLiability * 5));
+  const bankEl = byId('calcBankroll');
+  if (bankEl) bankEl.textContent = `€${recBank}`;
+
+  updateExchangeSignal(b1, lx, backProfit, layLiability, ev);
+}
+`;
   byId('calcLayLiability').textContent = `€${layLiability}`;
   byId('calcLayStake').textContent = `€${layStake}`;
   byId('calcBreakEven').textContent = breakEven.toFixed(2);
@@ -687,6 +704,7 @@ function runAnalysis() {
   }
 
   updateExchangeCalc();
+  if (typeof autoSuggestLayer === 'function') autoSuggestLayer(data);
 
   if (data.home) {
     const oddsInfo = data.odds ? ` | Back1: ${data.odds.back1} / LayX: ${data.odds.layX}` : '';
@@ -1464,3 +1482,21 @@ window.parseRawScannerData = function() {
   }, 100);
 };
 
+
+window.autoSuggestLayer = function(data) {
+  const typeEl = byId('entryType');
+  const min = data.minute || 0;
+  const totalGoals = (data.gh || 0) + (data.ga || 0);
+  
+  if (totalGoals === 0 && min >= 15 && min <= 35) {
+    typeEl.value = 'PRIMARY';
+  } else if (totalGoals > 0 && min >= 75) {
+    typeEl.value = 'SCALP';
+  } else if (totalGoals > 0 && min < 75) {
+    typeEl.value = 'RECOVERY';
+  } else {
+    typeEl.value = 'PRIMARY';
+  }
+  
+  if (typeof updateExchangeCalc === 'function') updateExchangeCalc();
+};

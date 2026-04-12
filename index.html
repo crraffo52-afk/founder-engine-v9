@@ -125,23 +125,38 @@
 
           <!-- INPUTS -->
           <div class="ex-block">
-            <div class="ex-label">QUOTE & STAKE</div>
+            <div class="ex-label">CONFIGURAZIONE INGRESSO (SEQUENZIALE)</div>
             <div class="ex-row">
-              <div>
-                <label>Back 1 (quota)</label>
-                <input id="b1" type="number" step="0.01" placeholder="2.40">
+              <div style="flex: 2;">
+                <label>Punta/Banca (Modalità)</label>
+                <select id="entryType" onchange="updateExchangeCalc()">
+                  <option value="PRIMARY">L1 - Primario (Standard)</option>
+                  <option value="RECOVERY">L2 - Recupero (Recovery)</option>
+                  <option value="SCALP">L3 - Scalp / Cashout</option>
+                  <option value="HEDGE">L4 - Copertura (Hedge)</option>
+                </select>
               </div>
               <div>
-                <label>Lay X (quota)</label>
-                <input id="lx" type="number" step="0.01" placeholder="3.20">
+                <label>Stake (€)</label>
+                <input id="stake" type="number" step="0.5" value="10" oninput="updateExchangeCalc()">
+              </div>
+              <div id="recoveryBox" style="display:none;">
+                <label style="color:var(--danger)">Perdita Precedente (€)</label>
+                <input id="prevLoss" type="number" step="0.1" value="0" oninput="updateExchangeCalc()">
+              </div>
+            </div>
+            <div class="ex-row" style="margin-top:10px;">
+              <div>
+                <label>Back 1 (Punta)</label>
+                <input id="b1" type="number" step="0.01" placeholder="2.40" oninput="updateExchangeCalc()">
               </div>
               <div>
-                <label>Stake Back (€)</label>
-                <input id="stake" type="number" step="0.5" value="10">
+                <label>Lay X (Banca)</label>
+                <input id="lx" type="number" step="0.01" placeholder="3.20" oninput="updateExchangeCalc()">
               </div>
               <div>
-                <label>Bankroll (€)</label>
-                <input id="bank" type="number" value="100">
+                <label>Bankroll Consigliato</label>
+                <div id="calcBankroll" style="font-size:14px; font-weight:700; color:var(--accent); margin-top:8px;">€100</div>
               </div>
             </div>
           </div>

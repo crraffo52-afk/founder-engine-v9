@@ -34,10 +34,10 @@ app.use(express.json());
 // Health check endpoint
 app.get('/ping', (req, res) => res.send('pong'));
 
-// Serve static files (Prioritize Root to avoid caching old dist builds)
-const distPath = path.join(process.cwd());
-app.use(express.static(distPath));
-console.log(`📂 Serving static files from: ${distPath}`);
+// Serve static files (ROOT PRIORITY - FORCE BYPASS DIST)
+const distPath = process.cwd();
+app.use(express.static(distPath, { etag: false, lastModified: false }));
+console.log(`🚀 STANDBY V9.2: Serving direct from ROOT to block stale cache.`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────
 let availableModels = [];

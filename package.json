@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build",
-    "preview": "vite preview",
+    "build": "rm -rf dist && echo 'Build Cleaned'",
     "start": "node server.js"
   },
   "keywords": [],

@@ -264,17 +264,25 @@ function calcMomentum(data) {
   // Late in the game every attack is more critical.
   const timeDecay = Math.min(min / 90, 1) + 0.5; // Starts at 0.5, ends at 1.5
 
+  // Il Gap di XG viene calcolato solo come "Pressione accumulata non sfogata" (minimo 0), 
+  // in modo da non penalizzare negativamente chi sta segnando con cinismo (overperformance).
+  const threatH = Math.max(0, data.xgh - data.gh);
+  const threatA = Math.max(0, data.xga - data.ga);
+
   const homeScore = Math.max(0,
-    (data.xgh - data.gh) * 40 * timeDecay +
-    pos * 0.2 +
-    (soth * 8 * effH) +
-    dah * 1.5
+    (threatH * 35 * timeDecay) +
+    (data.xgh * 10) +
+    (pos * 0.3) +
+    (soth * 6 * effH) +
+    (dah * 1.8)
   );
+  
   const awayScore = Math.max(0,
-    (data.xga - data.ga) * 40 * timeDecay +
-    (100 - pos) * 0.2 +
-    (sota * 8 * effA) +
-    daa * 1.5
+    (threatA * 35 * timeDecay) +
+    (data.xga * 10) +
+    ((100 - pos) * 0.3) +
+    (sota * 6 * effA) +
+    (daa * 1.8)
   );
   const total = Math.max(homeScore + awayScore, 1);
 

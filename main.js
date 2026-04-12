@@ -385,7 +385,10 @@ function updateBookPreview(data) {
   let dynamicBets = [];
 
   // Strategia PT EXPLOSION (Precisione 15-35 min)
-  if (min >= 15 && min <= 35 && totalGoals === 0 && daPerMin >= 0.8 && totalXG >= 0.4) {
+  const isExtremePressure = daPerMin >= 1.0;
+  const xgTarget = isExtremePressure ? 0.30 : 0.40;
+
+  if (min >= 15 && min <= 35 && totalGoals === 0 && daPerMin >= 0.8 && totalXG >= xgTarget) {
     dynamicBets.push({ 
       label: 'PT EXPLOSION', 
       pick: 'Over 0.5 Goal nel PT', 
@@ -622,7 +625,10 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     const daPerMin = ((lastData.stats.da?.[0] || 0) + (lastData.stats.da?.[1] || 0)) / Math.max(lastData.minute, 1);
 
     // Elite Criteria for Signal Validation
-    if (lastData.minute >= 15 && lastData.minute <= 35 && lastData.gh === 0 && lastData.ga === 0 && daPerMin >= 0.8 && totalXG >= 0.4) {
+    const isExtremePressure = daPerMin >= 1.0;
+    const xgTarget = isExtremePressure ? 0.30 : 0.40;
+
+    if (lastData.minute >= 15 && lastData.minute <= 35 && lastData.gh === 0 && lastData.ga === 0 && daPerMin >= 0.8 && totalXG >= xgTarget) {
       signal = '🔥 PT EXPLOSION';
       color = '#f59e0b';
       msg = `💥 OPPORTUNITÀ PT — Intensità altissima (${daPerMin.toFixed(2)} DA/min). XG ${totalXG.toFixed(2)} chiama il gol prima dell'intervallo. Valuta Over 0.5 PT.`;
@@ -1396,8 +1402,10 @@ window.parseRawScannerData = function() {
         // --- LOGICA PT EXPLOSION (PRECISION) ---
         const isPTZone = min >= 15 && min <= 35;
         const totalXG = match.xgh + match.xga;
+        const isExtremePressure = daPerMin >= 1.0;
+        const xgTarget = isExtremePressure ? 0.30 : 0.40;
         
-        if (isPTZone && daPerMin >= 0.8 && totalXG >= 0.4 && mGoalsH === 0 && mGoalsA === 0) {
+        if (isPTZone && daPerMin >= 0.8 && totalXG >= xgTarget && mGoalsH === 0 && mGoalsA === 0) {
            signal = '🔥 GOAL PT (HOT)'; 
            signalColor = '#f59e0b'; // Arancio caldo
         }

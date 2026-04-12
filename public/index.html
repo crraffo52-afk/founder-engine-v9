@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-16">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>THE FOUNDER ENGINE V9.5.0 | RESTORED HUB</title>
-  <link rel="stylesheet" href="/style.css?v=9.5.0">
+  <title>THE FOUNDER ENGINE V9.6.5 | ULTIMATE DYNAMIC HUB</title>
+  <link rel="stylesheet" href="/style.css?v=9.6.5">
   <link rel="icon" type="image/png" href="/assets/favicon.png">
 </head>
 <body>
@@ -15,8 +15,8 @@
     <header class="header">
       <div class="brand">
         <div class="brand-shell">
-          <h1>THE FOUNDER V9.5.0</h1>
-          <p>Master of Precision Hub</p>
+          <h1>THE FOUNDER V9.6.5</h1>
+          <p>Strategy & Precision Hub</p>
         </div>
       </div>
       <div class="hex"></div>
@@ -27,11 +27,11 @@
       <div class="status-chip">
         <div class="dot"></div>
         <span class="status-key">SYSTEM:</span>
-        <span class="status-val">OPERATIONAL</span>
+        <span class="status-val">READY</span>
       </div>
       <div class="status-chip">
         <span class="status-key">CORE:</span>
-        <span class="status-val" id="coreVersion">9.5.0-STABLE</span>
+        <span class="status-val" id="coreVersion">9.6.5-PRO</span>
       </div>
       <div class="status-chip">
         <span class="status-key">MATCH:</span>
@@ -52,23 +52,23 @@
       <!-- DATA SCANNER -->
       <section class="card col-5">
         <h2>📡 Omni-Parse Scanner</h2>
-        <textarea id="scanner" placeholder="Incolla qui i dati grezzi del match (Stats live, xG, etc...)"></textarea>
+        <textarea id="scanner" placeholder="Incolla qui i dati grezzi del match (Stats live, xG, Goal, etc...)"></textarea>
         <div class="actions">
           <button class="btn-main" onclick="runAnalysis()">ANALIZZA ORA</button>
-          <button id="clearBtn" style="width:100%; margin-top:5px; background:rgba(251,113,133,0.1); border-color:var(--danger); color:var(--danger);">PULISCI</button>
+          <button id="clearBtn" onclick="byId('scanner').value=''; runAnalysis();" style="width:100%; margin-top:5px; background:rgba(251,113,133,0.1); border-color:var(--danger); color:var(--danger);">PULISCI</button>
         </div>
       </section>
 
       <!-- MOMENTUM -->
       <section class="card col-7">
-        <h2>🔥 Momentum Analytics</h2>
+        <h2>🔥 Momentum & Predictive Analytics</h2>
         <div class="momentum">
           <div class="kv"><span>MOMENTUM CASA</span><strong id="mHomeTxt">0%</strong></div>
           <div class="track"><div id="mHome" class="fill" style="width:0%"></div></div>
           <div class="kv"><span>MOMENTUM OSPITE</span><strong id="mAwayTxt">0%</strong></div>
           <div class="track"><div id="mAway" class="fill" style="width:0%; background:var(--danger)"></div></div>
         </div>
-        <div id="signal" class="signal-box signal-empty" style="margin-top:15px;">In attesa dei dati grezzi per generare il momentum...</div>
+        <div id="signal" class="signal-box signal-empty" style="margin-top:15px;">In attesa dei dati grezzi per generare il momentum e le strategie...</div>
       </section>
 
       <!-- PROCESSED DATA -->
@@ -81,7 +81,7 @@
 
       <!-- BOOK ANALYSIS -->
       <section class="card col-8">
-        <h2>🎲 Analisi Book (Output)</h2>
+        <h2>🎲 Analisi Book & Probabilità</h2>
         <div id="bookGrid" class="book-grid">
           <div class="parsed-empty">In attesa dell'elaborazione delle probabilità...</div>
         </div>
@@ -96,36 +96,36 @@
         <div class="exchange-grid">
           
           <div class="ex-block">
-            <div class="ex-label">BETTING DATA</div>
+            <div class="ex-label">BETTING DATA (LIVE)</div>
             <div class="ex-row">
-              <div><label>Back @ (Punta)</label><input id="b1" type="number" step="0.01" value="2.00"></div>
-              <div><label>Lay @ (Banca)</label><input id="lx" type="number" step="0.01" value="2.10"></div>
+              <div><label>Back @ (Punta)</label><input id="b1" type="number" step="0.01" value="2.00" oninput="updateExchangeCalc()"></div>
+              <div><label>Lay @ (Banca)</label><input id="lx" type="number" step="0.01" value="2.10" oninput="updateExchangeCalc()"></div>
             </div>
             <div class="ex-row" style="margin-top:10px;">
-              <div><label>Stake (€)</label><input id="stake" type="number" value="10"></div>
-              <div><label>Entry Type</label>
+              <div><label>Stake (€)</label><input id="stake" type="number" value="10" oninput="updateExchangeCalc()"></div>
+              <div><label>Strategy Mode</label>
                 <select id="entryType">
-                  <option value="PRIMARY">ENTRY PRIMARY</option>
-                  <option value="RECOVERY">RECOVERY MODE</option>
+                  <option value="PRIMARY">PRIMARY ATTACK</option>
+                  <option value="RECOVERY">RECOVERY PLAN</option>
                 </select>
               </div>
             </div>
           </div>
 
           <div class="ex-block">
-            <div class="ex-label">CALCOLI LIVE</div>
+            <div class="ex-label">LIVE MATH (EUR)</div>
             <div class="ex-metrics">
-              <div class="ex-metric"><span>Profitto Back</span><strong id="calcBackProfit" class="ex-metric-val ok">€0.00</strong></div>
+              <div class="ex-metric"><span>Profitto Netto Back</span><strong id="calcBackProfit" class="ex-metric-val ok">€0.00</strong></div>
               <div class="ex-metric"><span>Lay Liability</span><strong id="calcLayLiability" class="ex-metric-val danger">€0.00</strong></div>
-              <div class="ex-metric"><span>Lay Stake</span><strong id="calcLayStake" class="ex-metric-val accent">€0.00</strong></div>
+              <div class="ex-metric"><span>Target Lay Stake</span><strong id="calcLayStake" class="ex-metric-val accent">€0.00</strong></div>
             </div>
           </div>
 
           <div class="ex-block">
-            <div class="ex-label">SEGNALE TRADING</div>
+            <div class="ex-label">DYNAMIC STRATEGY TRIGGER</div>
             <div id="exSignal" class="ex-signal">
               <div id="exSignalBadge" class="ex-signal-badge">WAIT</div>
-              <div id="exSignalReason" class="ex-signal-reason">In attesa di dati per calcolare la strategia.</div>
+              <div id="exSignalReason" class="ex-signal-reason">In attesa di parametri di pressione dal tab Live Scout.</div>
             </div>
           </div>
 
@@ -136,7 +136,7 @@
     <!-- TRACKER TAB -->
     <main class="grid" id="tabTrackerContent" style="display:none;">
       <section class="card col-12">
-        <h2>📈 Performance History</h2>
+        <h2>📈 Exchange Tracker History</h2>
         <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
           <thead>
             <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
@@ -148,7 +148,7 @@
             </tr>
           </thead>
           <tbody id="trackerTableBody">
-            <tr><td colspan="5" style="padding:20px; text-align:center; color:var(--muted)">Nessun salvataggio trovato.</td></tr>
+            <tr><td colspan="5" style="padding:20px; text-align:center; color:var(--muted)">Nessun salvataggio trovato. Sincronizzazione in corso...</td></tr>
           </tbody>
         </table>
       </section>
@@ -156,6 +156,7 @@
 
   </div>
 
-  <script type="module" src="/master_engine_v932.js?v=9.5.0"></script>
+  <script type="module" src="/master_engine_v932.js?v=9.6.5"></script>
 </body>
 </html>
+

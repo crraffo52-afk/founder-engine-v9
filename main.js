@@ -1377,7 +1377,15 @@ window.parseRawScannerData = function() {
         const gap = Math.abs(mHome - mAway);
         const isSurge = gap > 40;
         
-        if (isSurge && mHome > 70 && threatH > 0.4 && min > 45) { signal = 'BUY HOME (SURGE)'; signalColor = '#2dd4bf'; }
+        // --- LOGICA PT EXPLOSION (PRECISION) ---
+        const isPTZone = min >= 15 && min <= 35;
+        const totalXG = match.xgh + match.xga;
+        
+        if (isPTZone && daPerMin >= 0.8 && totalXG >= 0.4 && mGoalsH === 0 && mGoalsA === 0) {
+           signal = '🔥 GOAL PT (HOT)'; 
+           signalColor = '#f59e0b'; // Arancio caldo
+        }
+        else if (isSurge && mHome > 70 && threatH > 0.4 && min > 45) { signal = 'BUY HOME (SURGE)'; signalColor = '#2dd4bf'; }
         else if (isSurge && mAway > 70 && threatA > 0.4 && min > 45) { signal = 'BUY AWAY (SURGE)'; signalColor = '#2dd4bf'; }
         else if (mGoalsH === mGoalsA && totalXG > 1.2 && daPerMin > 0.8 && min > 50 && min < 80) { signal = 'LAY DRAW (LTD)'; signalColor = '#f59e0b'; }
         else if (daPerMin > 1.2 && totalXG > mGoalsH + mGoalsA + 0.5) { signal = 'OVER ALERT'; signalColor = '#38bdf8'; }
@@ -1386,8 +1394,11 @@ window.parseRawScannerData = function() {
       });
 
       processed.sort((a, b) => {
-        if (a.signal !== 'WAIT' && b.signal === 'WAIT') return -1;
-        if (a.signal === 'WAIT' && b.signal !== 'WAIT') return 1;
+        // Priorità Massima ai segnali PT e SURGE
+        const scoreA = (a.signal.includes('PT') ? 100 : 0) + (a.signal.includes('SURGE') ? 50 : 0) + (a.signal !== 'WAIT' ? 10 : 0);
+        const scoreB = (b.signal.includes('PT') ? 100 : 0) + (b.signal.includes('SURGE') ? 50 : 0) + (b.signal !== 'WAIT' ? 10 : 0);
+        
+        if (scoreA !== scoreB) return scoreB - scoreA;
         return b.daPerMin - a.daPerMin;
       });
 

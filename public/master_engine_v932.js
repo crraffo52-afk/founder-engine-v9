@@ -9,7 +9,7 @@ const valNum = (id) => parseFloat(byId(id)?.value) || 0;
 let lastData = null;
 let autoTimer = null;
 
-// ─── PARSER TRADIZIONALE (STABILE IERI) ──────────────────────────────────────
+// ─── PARSER TRADIZIONALE (POTENZIATO MULTILINE) ───────────────────────────────
 
 function parseRawMatchText(raw) {
     const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
@@ -38,15 +38,9 @@ function parseRawMatchText(raw) {
     if (minAlt) result.minute = parseInt(minAlt[1]);
     else if (text.includes('FT')) result.minute = 90;
 
-    // xG (Expected Goals)
-    const xgMatch = text.match(/XG\s+([\d.]+)\s+([\d.]+)/i) || text.match(/([\d.]+)-([\d.]+)/);
-    if (xgMatch) {
-        result.xgh = parseFloat(xgMatch[1]);
-        result.xga = parseFloat(xgMatch[2]);
-    }
-
-    // Stats Grid Scanner (Bologna vs Lecce multi-line support)
+    // Stat Grid Scanner (Multiline & Inline Support)
     const statDef = [
+        { key: 'XG', id: 'xg' },
         { key: 'Tiri in Porta', id: 'sot' },
         { key: 'Attacchi Pericolosi', id: 'da' },
         { key: 'Possesso Palla', id: 'pos' },
@@ -55,16 +49,30 @@ function parseRawMatchText(raw) {
 
     lines.forEach((line, i) => {
         statDef.forEach(def => {
-            if (line.includes(def.key)) {
-                if (!isNaN(parseFloat(lines[i+1])) && !isNaN(parseFloat(lines[i+2]))) {
-                    result.stats[def.id] = [parseFloat(lines[i+1]), parseFloat(lines[i+2])];
+            if (line.toLowerCase() === def.key.toLowerCase() || line.includes(def.key)) {
+                // Check following 2 lines for numbers
+                const valH = parseFloat(lines[i+1]?.replace(',', '.').replace('%', ''));
+                const valA = parseFloat(lines[i+2]?.replace(',', '.').replace('%', ''));
+                if (!isNaN(valH) && !isNaN(valA)) {
+                    if (def.id === 'xg') { result.xgh = valH; result.xga = valA; }
+                    else { result.stats[def.id] = [valH, valA]; }
                 }
             }
         });
     });
 
+    // Special Case for "4-1 8-5 2.19-0.32" line
+    const tableLine = lines.find(l => l.includes('2.19-0.32'));
+    if (tableLine && result.xgh === undefined) {
+        const parts = tableLine.split(/\s+/);
+        const xgPart = parts.find(p => p.includes('2.19'));
+        if (xgPart) {
+            const [xh, xa] = xgPart.split('-').map(v => parseFloat(v));
+            result.xgh = xh; result.xga = xa;
+        }
+    }
+
     if (result.xgh === undefined) {
-        // Fallback xG formula (Stabile V9)
         const s = result.stats;
         const g = (k, i) => (s[k] ? s[k][i] : 0);
         result.xgh = (g('sot',0)*0.18) + (g('da',0)*0.02) + (g('cor',0)*0.05);
@@ -77,6 +85,7 @@ function parseRawMatchText(raw) {
     result.minute = result.minute || 0;
     return result;
 }
+
 
 // ─── RENDERING UI ─────────────────────────────────────────────────────────────
 

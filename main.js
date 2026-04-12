@@ -250,24 +250,35 @@ function calcMomentum(data) {
 
   const pos = g('pos', 0) || 50;
   const soth = g('sot', 0), sota = g('sot', 1);
+  const sth = g('st', 0) || 1, sta = g('st', 1) || 1;
   const dah = g('da', 0), daa = g('da', 1);
+  const min = data.minute || 1;
+  
+  // SOT Efficiency (Accuracy weight)
+  const effH = Math.min(soth / sth, 1);
+  const effA = Math.min(sota / sta, 1);
+  
+  // Time Decay Multipliers
+  // Early game goals mean less pressure drop than late game goals.
+  // Late in the game every attack is more critical.
+  const timeDecay = Math.min(min / 90, 1) + 0.5; // Starts at 0.5, ends at 1.5
 
   const homeScore = Math.max(0,
-    (data.xgh - data.gh) * 30 +
-    pos * 0.3 +
-    soth * 8 +
+    (data.xgh - data.gh) * 40 * timeDecay +
+    pos * 0.2 +
+    (soth * 8 * effH) +
     dah * 1.5
   );
   const awayScore = Math.max(0,
-    (data.xga - data.ga) * 30 +
-    (100 - pos) * 0.3 +
-    sota * 8 +
+    (data.xga - data.ga) * 40 * timeDecay +
+    (100 - pos) * 0.2 +
+    (sota * 8 * effA) +
     daa * 1.5
   );
   const total = Math.max(homeScore + awayScore, 1);
 
   const mHome = Math.round((homeScore / total) * 100);
-  const mAway = 100 - mHome;
+  const mAway = Math.round((awayScore / total) * 100);
 
   byId('mHome').style.width = `${mHome}%`;
   byId('mAway').style.width = `${mAway}%`;
@@ -275,7 +286,7 @@ function calcMomentum(data) {
   byId('mAwayTxt').textContent = `${mAway}%`;
 
   const gap = Math.abs(mHome - mAway);
-  const trend = gap > 25 ? 'SURGE' : gap > 12 ? 'RISING' : 'STABLE';
+  const trend = gap > 35 ? 'SURGE' : gap > 15 ? 'RISING' : 'STABLE';
   byId('trendTxt').textContent = trend;
   byId('trendDot').style.color = trend === 'SURGE' ? '#2dd4bf' : trend === 'RISING' ? '#f59e0b' : '#94a3b8';
 
@@ -294,7 +305,7 @@ function updateDynamicStrategies(data, momentum) {
   const xgGapA = (data.xga || 0) - (data.ga || 0);
   const min = data.minute || 1;
 
-  // DA/min pressure rate (OMNI-ENGINE core metric)
+  // DA/min pressure rate (OMNI-ENGINE core metrics)
   const dah = get('da', 0), daa = get('da', 1);
   const daTotal = dah + daa;
   const daPerMin = min > 0 ? daTotal / min : 0;
@@ -309,39 +320,39 @@ function updateDynamicStrategies(data, momentum) {
 
   document.querySelectorAll('.strat .item').forEach(el => el.classList.remove('strat-active'));
 
-  // 1. LAY THE DRAW
-  // Score locked, significant offensive production from either side
-  if (data.gh === data.ga && min >= 35 && min <= 80 &&
-      (totalXG > 0.5 || daPerMin > 0.5 || (soth + sota) >= 3))
+  // 1. LAY THE DRAW (Precision)
+  // XG Gap > 0.6 total, DA/Min > 0.85 (Elite), Minute 45-75
+  if (data.gh === data.ga && min >= 45 && min <= 75 &&
+      (totalXG > 1.2 || daPerMin >= 0.85 || mHome > 65 || mAway > 65))
     byId('strat-ltd')?.classList.add('strat-active');
 
-  // 2. BACK TO LAY
-  // One team clearly dominating via DA rate or XG gap
-  if ((xgGapH > 0.3 && mHome > 58 && daRateH > 0.35) ||
-      (xgGapA > 0.3 && mAway > 58 && daRateA > 0.35))
+  // 2. BACK TO LAY (Precision)
+  // XG Gap > 0.5 for the dominating team, elite DA/Min (>0.6)
+  if ((xgGapH >= 0.5 && mHome >= 60 && daRateH >= 0.5) ||
+      (xgGapA >= 0.5 && mAway >= 60 && daRateA >= 0.5))
     byId('strat-btl')?.classList.add('strat-active');
 
-  // 3. SCALP UNDER
-  // Very low production, sterile match
-  if (min >= 20 && min <= 65 && totalXG < 0.4 &&
-      daPerMin < 0.4 && (soth + sota) <= 2 && Math.abs(mHome - mAway) < 15)
+  // 3. SCALP UNDER (Precision)
+  // DA/Min < 0.35, Total XG < 0.5, max 3 total SOT
+  if (min >= 20 && min <= 60 && totalXG <= 0.6 &&
+      daPerMin <= 0.4 && (soth + sota) <= 3 && Math.abs(mHome - mAway) <= 20)
     byId('strat-scalp')?.classList.add('strat-active');
 
-  // 4. POWER PLAY
-  // Late game, one team surging hard
-  if (min > 65 && (mHome > 70 || mAway > 70) && daPerMin > 0.6)
+  // 4. POWER PLAY (Precision)
+  // Late game surge > 75%, DA/Min > 0.90
+  if (min > 70 && (mHome >= 75 || mAway >= 75) && (daRateH >= 0.6 || daRateA >= 0.6) && daPerMin >= 0.80)
     byId('strat-power')?.classList.add('strat-active');
 
   // 5. LAY FAVOURITE (crisis mode)
-  // Losing team not generating pressure despite good odds
-  if ((data.gh > data.ga && xgGapA < 0.1 && daRateA < 0.3) ||
-      (data.ga > data.gh && xgGapH < 0.1 && daRateH < 0.3))
+  // Team leading but having < 0.2 DA/min and being heavily out-XG'd
+  if ((data.gh > data.ga && Math.abs(xgGapA) >= 0.4 && daRateA >= 0.5 && daRateH < 0.25) ||
+      (data.ga > data.gh && Math.abs(xgGapH) >= 0.4 && daRateH >= 0.5 && daRateA < 0.25))
     byId('strat-layfav')?.classList.add('strat-active');
 
   // 6. SCATTERGUN (Dutching)
-  // High pressure balanced match with goals expected
-  if (totalXG > 0.8 && Math.abs(mHome - mAway) < 25 &&
-      (data.gh + data.ga) <= 1 && daPerMin > 0.55)
+  // Explosive match where both teams are heavily attacking (>1 total SOT/min or >0.9 DA/min combined)
+  if (totalXG > Math.max(data.gh + data.ga, 1.2) && daPerMin >= 0.85 &&
+      Math.abs(mHome - mAway) < 25 && min > 45 && min < 80)
     byId('strat-scattergun')?.classList.add('strat-active');
 
   updateStrategicGuide(data, { mHome, mAway, daPerMin, daRateH, daRateA, sotEffH, sotEffA, xgGapH, xgGapA, totalXG });
@@ -357,50 +368,55 @@ function updateBookPreview(data) {
   const min = data.minute || 1;
   const s = data.stats;
   const g = (k, i) => (s[k] ? s[k][i] : 0);
+  
   const daTotal = g('da', 0) + g('da', 1);
+  const daPerMin = daTotal / min;
   const corTotal = g('cor', 0) + g('cor', 1);
   
   let dynamicBets = [];
 
-  // Goal/No Goal (BTTS)
+  // Goal/No Goal (BTTS) Advanced
   if (data.gh > 0 && data.ga > 0) {
-    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Entrambe Segnano (WIN)', odd: '-', confidence: 'Alta', reason: 'Pick già maturato. Valutare mercati successivi.' });
-  } else if (totalXG > 1.5 && g('sot', 0) > 1 && g('sot', 1) > 1) {
-    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Goal (Sì)', odd: '1.80+', confidence: 'Alta', reason: 'Entrambe le squadre producono SOT e XG elevati (Match aperto).' });
-  } else if (totalXG < 0.6 && min > 45) {
-    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'No Goal', odd: '1.50+', confidence: 'Media', reason: 'Pochissime occasioni prodotte (Match sterile).' });
+    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Entrambe Segnano (WIN)', odd: '-', confidence: 'Alta', reason: 'Pick già maturato. Valutare mercati continui.' });
+  } else if (totalXG >= 1.6 && g('sot', 0) >= 2 && g('sot', 1) >= 2 && min < 75) {
+    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Goal (Sì)', odd: '1.70+', confidence: 'Alta', reason: `Entrambe creano occasioni pericolose (Tot XG: ${totalXG.toFixed(2)}). Score stretto.` });
+  } else if (totalXG < 0.7 && daPerMin < 0.4 && min > 45) {
+    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'No Goal', odd: '1.45+', confidence: 'Alta', reason: `Avvolgimento reciproco scarso (DA/min: ${daPerMin.toFixed(2)}). Difese ermetiche.` });
   }
 
+  // Over/Under Intelligente
   let nextOver = totalGoals >= 2 ? 3.5 : (totalGoals === 1 ? 2.5 : 1.5);
-  if (totalXG > totalGoals + 0.6 && daTotal / min > 0.5) {
-    dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Over ${nextOver}`, odd: '1.75+', confidence: 'Alta', reason: `Ritmo forsennato, XG totale reale (${totalXG.toFixed(2)}) chiama altri gol.` });
-  } else if (totalXG <= totalGoals + 0.2 && min > 60 && daTotal / min < 0.4) {
-    dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Under ${nextOver}`, odd: '1.60+', confidence: 'Alta', reason: `Partita sterile, pochissima produzione offensiva al minuto ${min}'.` });
+  if (totalXG > totalGoals + 0.8 && daPerMin > 0.85) {
+    dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Over ${nextOver}`, odd: '1.80+', confidence: 'Alta', reason: `Ritmo Elite (${daPerMin.toFixed(2)} DA/min), XG reale chiama la rete matematica.` });
+  } else if (totalXG <= totalGoals + 0.3 && min > 65 && daPerMin < 0.5) {
+    dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Under ${nextOver}`, odd: '1.55+', confidence: 'Media', reason: `Decadimento tattico in corso. Poche ripartenze utili nel 2T.` });
   }
 
-  if (xgDiff > 0.6 && data.gh <= data.ga) {
-    dynamicBets.push({ label: 'ASIAN HANDICAP', pick: `${data.home || 'CASA'} -0.5`, odd: '1.90+', confidence: 'Alta', reason: `Pressione assoluta ${data.home || 'Home'} (XG GAP +${xgDiff.toFixed(2)}), risultato stretto.` });
-  } else if (xgDiff < -0.6 && data.ga <= data.gh) {
-    dynamicBets.push({ label: 'ASIAN HANDICAP', pick: `${data.away || 'OSPITE'} -0.5`, odd: '1.90+', confidence: 'Alta', reason: `Pressione assoluta ${data.away || 'Away'} (XG GAP +${Math.abs(xgDiff).toFixed(2)}), risultato stretto.` });
+  // Asian Handicap Dinamico
+  if (xgDiff >= 0.7 && data.gh <= data.ga) {
+    dynamicBets.push({ label: 'ASIAN HANDICAP', pick: `${data.home || 'CASA'} 0.0, -0.5`, odd: '1.85+', confidence: 'Alta', reason: `Assedio Home (XG GAP +${xgDiff.toFixed(2)}). L'Asian 0.0 ti rimborsa se finisce X.` });
+  } else if (xgDiff <= -0.7 && data.ga <= data.gh) {
+    dynamicBets.push({ label: 'ASIAN HANDICAP', pick: `${data.away || 'OSPITE'} 0.0, -0.5`, odd: '1.85+', confidence: 'Alta', reason: `Assedio Away (XG GAP +${Math.abs(xgDiff).toFixed(2)}). L'Asian 0.0 ti rimborsa se finisce X.` });
   }
 
-  if (min > 30 && corTotal / min > 0.15) { 
+  // Mercato Corner Dinamico
+  if (min > 25 && (corTotal / min) >= 0.18) { 
     let projCorners = Math.round((corTotal / min) * 90);
-    dynamicBets.push({ label: 'MERCATO CORNER', pick: `Over ${projCorners - 1}.5 Angoli`, odd: '1.85+', confidence: 'Media', reason: `Alta spinta laterale. Proiezione a fine gara: ${projCorners} corner.` });
+    dynamicBets.push({ label: 'CORNER RACE', pick: `Over ${projCorners - 2}.5 Angoli`, odd: '1.80+', confidence: 'Alta', reason: `Flessione fasce enorme: proiezione a fine gara ${projCorners} corner.` });
   }
 
-  if (xgDiff > 0.3) {
-    dynamicBets.push({ label: 'PROSSIMO GOL', pick: `Segna ${data.home || 'CASA'}`, odd: '2.10+', confidence: 'Media', reason: `Avvolgimento e DA/min nettamente a favore di ${data.home || 'Home'}.` });
-  } else if (xgDiff < -0.3) {
-    dynamicBets.push({ label: 'PROSSIMO GOL', pick: `Segna ${data.away || 'OSPITE'}`, odd: '2.10+', confidence: 'Media', reason: `Avvolgimento e DA/min nettamente a favore di ${data.away || 'Away'}.` });
+  if (xgDiff > 0.5 && daPerMin > 0.7) {
+    dynamicBets.push({ label: 'PROSSIMO GOL', pick: `Segna ${data.home || 'CASA'}`, odd: '2.00+', confidence: 'Media', reason: `Momentum spostato nettamente a favore di ${data.home || 'Home'}.` });
+  } else if (xgDiff < -0.5 && daPerMin > 0.7) {
+    dynamicBets.push({ label: 'PROSSIMO GOL', pick: `Segna ${data.away || 'OSPITE'}`, odd: '2.00+', confidence: 'Media', reason: `Momentum spostato nettamente a favore di ${data.away || 'Away'}.` });
   }
 
   if (dynamicBets.length < 4) {
     let baseCombo = xgDiff >= 0 ? '1X + MultiGol 1-4' : 'X2 + MultiGol 1-4';
-    if (min < 70) dynamicBets.push({ label: 'COMBO CONSERVATIVA', pick: baseCombo, odd: '1.40+', confidence: 'Alta', reason: 'Copertura statistica basata su inerzia prevalente e trend storico.' });
+    if (min < 70) dynamicBets.push({ label: 'COMBO STATISTICA', pick: baseCombo, odd: '1.35+', confidence: 'Media', reason: 'Copertura basata su dominanza territoriale e XG base.' });
   }
 
-  if (min < 10) dynamicBets = [{ label: 'ATTESA', pick: 'Attendere 15 min', odd: '-', confidence: 'Bassa', reason: 'I dati Live non sono ancora stabilizzati per generare picks affidabili.' }];
+  if (min < 12) dynamicBets = [{ label: 'ATTESA', pick: 'Attendere 15 min', odd: '-', confidence: 'Bassa', reason: 'Dati iniziali non sufficienti per validazione matematica.' }];
 
   dynamicBets = dynamicBets.slice(0, 4);
 
@@ -415,7 +431,7 @@ function updateBookPreview(data) {
     </div>
   `).join('');
 
-  byId('bookMeta').textContent = `Modulo: ADVANCED DYNAMIC MARKETS | EV Engine | XG: ${(data.xgh||0).toFixed(2)} - ${(data.xga||0).toFixed(2)}`;
+  byId('bookMeta').textContent = `Modulo: SURGE DYNAMIC MARKETS | Precision Engine | XG: ${(data.xgh||0).toFixed(2)} - ${(data.xga||0).toFixed(2)}`;
 }
 
 // ─── STRATEGIC GUIDE ─────────────────────────────────────────────────────────
@@ -528,20 +544,28 @@ function updateExchangeCalc() {
 
   if (!b1 || !lx || !stake) return;
 
+  const commission = 0.05; // 5% Betfair base commission
+
   // Core exchange calculations
-  const backProfit = parseFloat((stake * (b1 - 1)).toFixed(2));
-  const layStake = parseFloat((stake * b1 / lx).toFixed(2));
+  const grossProfit = stake * (b1 - 1);
+  const backProfit = parseFloat((grossProfit * (1 - commission)).toFixed(2));
+  
+  const layStake = parseFloat(((stake * b1) / lx).toFixed(2));
   const layLiability = parseFloat((layStake * (lx - 1)).toFixed(2));
+  
+  // Break-Even considering commission
   const breakEven = parseFloat((b1 * stake / (stake + backProfit) + 1).toFixed(2));
 
-  // Green-up targets (30% profit, 20% stop loss as base)
-  const greenTarget = parseFloat((backProfit * 0.5).toFixed(2));
-  const stopLoss = parseFloat((layLiability * 0.4).toFixed(2));
+  // Precision Green-up targets (35% target, 15% strict SL)
+  const greenTarget = parseFloat((backProfit * 0.35).toFixed(2));
+  const stopLoss = parseFloat((stake * 0.15).toFixed(2)); // Strict 15% liability stop
   const roi = parseFloat(((backProfit / stake) * 100).toFixed(1));
 
-  // Expected Value (simplified: EV = prob_win * profit - prob_lose * stake)
+  // Precision EV Calculation (True Odds simulation)
   const impliedProb = b1 > 0 ? 1 / b1 : 0;
-  const ev = parseFloat(((impliedProb * backProfit) - ((1 - impliedProb) * stake)).toFixed(2));
+  const marginAdjustment = 0.95; // Account for market efficiency
+  const trueProb = impliedProb * marginAdjustment;
+  const ev = parseFloat(((trueProb * backProfit) - ((1 - trueProb) * stake)).toFixed(2));
 
   // Update UI
   byId('calcBackProfit').textContent = `€${backProfit}`;
@@ -576,32 +600,34 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     const xgGapA = (lastData.xga || 0) - (lastData.ga || 0);
     const totalXG = (lastData.xgh || 0) + (lastData.xga || 0);
 
-    if (ev > 0 && mHome > 65 && xgGapH > 0.5 && trend !== 'STABLE') {
-      signal = 'BUY HOME';
+    // Elite Criteria for Signal Validation
+    if (ev >= 0.5 && mHome >= 75 && xgGapH >= 0.6 && trend !== 'STABLE') {
+      signal = 'BUY HOME (ELITE)';
       color = '#2dd4bf';
-      msg = `✅ BACK ${lastData.home} — Momentum ${mHome}% + XG Gap +${xgGapH.toFixed(2)}. EV positivo (€${ev}).`;
-    } else if (ev > 0 && mAway > 65 && xgGapA > 0.5 && trend !== 'STABLE') {
-      signal = 'BUY AWAY';
+      msg = `✅ BACK ${lastData.home} — Surge Rilevato (${mHome}%). XG Gap MASSIVO (+${xgGapH.toFixed(2)}). EV Reale: €${ev}.`;
+    } else if (ev >= 0.5 && mAway >= 75 && xgGapA >= 0.6 && trend !== 'STABLE') {
+      signal = 'BUY AWAY (ELITE)';
       color = '#2dd4bf';
-      msg = `✅ BACK ${lastData.away} — Momentum ${mAway}% + XG Gap +${xgGapA.toFixed(2)}. EV positivo (€${ev}).`;
-    } else if (lastData.gh === lastData.ga && totalXG > 1.0 && lastData.minute >= 45) {
-      signal = 'LAY DRAW';
+      msg = `✅ BACK ${lastData.away} — Surge Rilevato (${mAway}%). XG Gap MASSIVO (+${xgGapA.toFixed(2)}). EV Reale: €${ev}.`;
+    } else if (lastData.gh === lastData.ga && totalXG >= 1.2 && lastData.minute >= 45 && lastData.minute <= 75 && lx <= 3.5) {
+      signal = 'LAY DRAW (LTD)';
       color = '#f59e0b';
-      msg = `⚡ LAY X — Score bloccato ${lastData.gh}:${lastData.ga} al ${lastData.minute}' con XG totale ${totalXG.toFixed(2)}. Gol atteso.`;
-    } else if (ev < -0.2 || (mHome < 35 && mAway < 35)) {
-      signal = 'WAIT';
-      color = '#94a3b8';
-      msg = '⏸ Match sterile o EV negativo. Attendere segnale più chiaro.';
+      msg = `⚡ LAY X — Score bloccato ${lastData.gh}:${lastData.ga}. XG Matematico ${totalXG.toFixed(2)} chiama la rete. Quota sostenibile.`;
+    } else if (ev < 0 && (mHome < 40 && mAway < 40)) {
+      signal = 'NO BET';
+      color = '#ef4444';
+      msg = `⏸ EV Negativo (€${ev}) e Partita Sterile. Entrare ora è matematicamente svantaggioso.`;
     } else {
       signal = 'MONITOR';
       color = '#38bdf8';
-      msg = `👁 Match sotto osservazione. Trend: ${trend}. Attendi conferma momentum prima di entrare.`;
+      msg = `👁 Assetto incerto. Trend: ${trend}. Expected Value quasi in pari. Attendi sbilanciamento mercato.`;
     }
   }
 
   badge.textContent = signal;
   badge.style.background = color === '#2dd4bf' ? 'rgba(45,212,191,0.15)' :
                            color === '#f59e0b' ? 'rgba(245,158,11,0.15)' :
+                           color === '#ef4444' ? 'rgba(239,68,68,0.15)' :
                            color === '#38bdf8' ? 'rgba(56,189,248,0.15)' :
                            'rgba(148,163,184,0.1)';
   badge.style.color = color;

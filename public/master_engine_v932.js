@@ -122,12 +122,20 @@ function updateBookUI(data) {
     grid.innerHTML = '';
 
     const tx = (data.xgh + data.xga) || 0;
+    
+    // Poisson approximation for probabilities
     const p05 = Math.round((1 - Math.exp(-tx)) * 100);
     const p15 = Math.round((1 - Math.exp(-tx) * (1 + tx)) * 100);
+    const p25 = Math.round((1 - Math.exp(-tx) * (1 + tx + (tx**2/2))) * 100);
+    const pGoal = Math.round(( (1 - Math.exp(-Math.max(data.xgh, 0.01))) * (1 - Math.exp(-Math.max(data.xga, 0.15))) ) * 100);
+    const pCleanH = Math.round(Math.exp(-data.xga) * 100);
 
     const markets = [
         { name: 'Over 0.5 Total', prob: p05, color: 'var(--ok)' },
         { name: 'Over 1.5 Total', prob: p15, color: 'var(--warn)' },
+        { name: 'Over 2.5 Total', prob: p25, color: 'var(--danger)' },
+        { name: 'BTTS (Goal)', prob: pGoal, color: 'var(--accent)' },
+        { name: 'Clean Sheet Home', prob: pCleanH, color: 'var(--ok)' },
         { name: 'Home Score', prob: Math.round((1-Math.exp(-data.xgh))*100), color: 'var(--accent)' }
     ];
 
@@ -166,24 +174,69 @@ function updateExchangeCalc() {
     byId('calcLayLiability').textContent = `€${layLiability}`;
     byId('calcLayStake').textContent = `€${layStake}`;
 
-    // STRATEGY TRIGGERS (Restored yesterday)
+    if (lastData) calculateDynamicStrategy(lastData);
+}
+
+function calculateDynamicStrategy(data) {
     const badge = byId('exSignalBadge');
     const reason = byId('exSignalReason');
-    
-    if (lastData && lastData.minute > 0) {
-        if (lastData.minute < 30 && lastData.gh === 0 && lastData.ga === 0 && lastData.xgh > 0.4) {
-            badge.textContent = 'PT EXPLOSION';
-            badge.style.borderColor = 'var(--ok)';
-            badge.style.color = 'var(--ok)';
-            reason.textContent = 'Elevato xG iniziale. Possibile Over 0.5 HT.';
-        } else {
-            badge.textContent = 'MONITOR';
-            badge.style.borderColor = 'var(--muted)';
-            badge.style.color = 'var(--muted)';
-            reason.textContent = 'In attesa di parametri ottimali per LTD o PT.';
+    if (!badge || !reason) return;
+
+    const min = data.minute;
+    const score = `${data.gh}-${data.ga}`;
+    const xgSum = data.xgh + data.xga;
+    const threatH = Math.max(0, data.xgh - data.gh);
+    const threatA = Math.max(0, data.xga - data.ga);
+
+    // Initial State
+    badge.textContent = 'MONITOR';
+    badge.style.borderColor = 'var(--muted)';
+    badge.style.color = 'var(--muted)';
+    reason.textContent = 'Analisi in corso... In attesa di parametri ottimali.';
+
+    // 1. PT EXPLOSION
+    if (min < 30 && score === '0-0' && data.xgh > 0.45) {
+        badge.textContent = 'PT EXPLOSION';
+        badge.style.borderColor = 'var(--ok)';
+        badge.style.color = 'var(--ok)';
+        reason.textContent = `Dominanza ${data.home}. Pressione alta (xG ${data.xgh.toFixed(2)}). Entrata consigliata Over 0.5 HT.`;
+        return;
+    }
+
+    // 2. LAY THE DRAW (LTD)
+    if (min >= 45 && min <= 70 && data.gh === data.ga) {
+        if (data.xgh > data.xga + 0.5 || data.xga > data.xgh + 0.5) {
+            badge.textContent = 'LAY THE DRAW';
+            badge.style.borderColor = 'var(--warn)';
+            badge.style.color = 'var(--warn)';
+            reason.textContent = `Match in equilibrio ma con xG sbilanciato. Ottimo momento per LTD fino al 75'.`;
+            return;
         }
     }
+
+    // 3. HT OVER 0.5 HUNT
+    if (min >= 30 && min <= 40 && score === '0-0' && xgSum > 0.7) {
+        badge.textContent = 'HT GOAL HUNT';
+        badge.style.borderColor = 'var(--accent)';
+        badge.style.color = 'var(--accent)';
+        reason.textContent = `Pressione totale prima dell'intervallo. Valuta Over 0.5 HT @ quota > 1.80.`;
+        return;
+    }
+
+    // 4. LATE GOAL
+    if (min >= 75 && (data.gh === data.ga || Math.abs(data.gh - data.ga) === 1) && (threatH > 0.3 || threatA > 0.3)) {
+        badge.textContent = 'LATE GOAL';
+        badge.style.borderColor = 'var(--danger)';
+        badge.style.color = 'var(--danger)';
+        reason.textContent = `Assalto finale in corso. Frequenza tiri alta. Segnale per Over 0.5 aggiuntivo.`;
+        return;
+    }
+
+    if (xgSum > 0.1) {
+        reason.textContent = `Pressione moderata. Match sotto osservazione. xG Totale: ${xgSum.toFixed(2)}.`;
+    }
 }
+
 
 // ─── CORE ─────────────────────────────────────────────────────────────
 
@@ -198,6 +251,7 @@ window.runAnalysis = function() {
         updateStatsUI(data);
         updateBookUI(data);
         updateExchangeCalc();
+        calculateDynamicStrategy(data); // Immediate strategy update
         byId('signal').textContent = `Match Analizzato: ${data.home} ${data.gh}-${data.ga} (${data.minute}')`;
         byId('signal').classList.remove('signal-empty');
     } catch (e) { console.error('Error', e); }

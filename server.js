@@ -230,8 +230,9 @@ app.get('/api/scanner-live', async (req, res) => {
     });
     const json = await response.json();
     
-    if (json.errors && json.errors.requests) {
-        throw new Error(json.errors.requests);
+    if (json.errors && Object.keys(json.errors).length > 0) {
+        const errorMsg = Object.values(json.errors)[0];
+        throw new Error(errorMsg);
     }
 
     const matches = (json.response || []).map(m => {

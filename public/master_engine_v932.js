@@ -155,7 +155,7 @@ function updateBookUI(data) {
     const tx = (data.xgh + data.xga) || 0;
     const p05 = Math.round((1 - Math.exp(-tx)) * 100);
     const p15 = Math.round((1 - Math.exp(-tx) * (1 + tx)) * 100);
-    const pGoal = Math.round(( (1 - Math.exp(Math.max(data.xgh, 0.01))) * (1 - Math.exp(Math.max(data.xga, 0.15))) ) * 100);
+    const pGoal = Math.round(( (1 - Math.exp(-Math.max(data.xgh, 0.01))) * (1 - Math.exp(-Math.max(data.xga, 0.15))) ) * 100);
 
     const markets = [
         { name: 'Over 0.5 Total', prob: p05, color: 'var(--ok)' },

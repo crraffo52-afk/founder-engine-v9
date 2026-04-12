@@ -34,25 +34,9 @@ app.use(express.json());
 // Health check endpoint
 app.get('/ping', (req, res) => res.send('pong'));
 
-// Serve static files from dist (Flexible Resolution)
-const possiblePaths = [
-  path.join(__dirname, 'dist'),
-  path.join(process.cwd(), 'dist'),
-  './dist'
-];
-
-let distPath = possiblePaths[0];
-for (const p of possiblePaths) {
-  try {
-    if (readdirSync(p)) {
-      distPath = p;
-      console.log(`✅ Found dist folder at: ${p}`);
-      break;
-    }
-  } catch(e) {}
-}
-
-app.use(express.static(distPath)); 
+// Serve static files (Prioritize Root to avoid caching old dist builds)
+const distPath = path.join(process.cwd());
+app.use(express.static(distPath));
 console.log(`📂 Serving static files from: ${distPath}`);
 
 // ─── Gemini AI Setup ───────────────────────────────────────────────────────────

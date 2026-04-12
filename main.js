@@ -184,17 +184,35 @@ window.autoSuggestLayer = function(data) {
 };
 
 function runAnalysis() {
+    console.log('--- START ANALYSIS ---');
     const raw = byId('scanner').value.trim();
-    if (!raw) return;
-    const data = parseRawMatchText(raw);
-    lastData = data;
+    if (!raw) {
+        console.warn('Scanner vuoto');
+        return;
+    }
     
-    calcMomentum(data);
-    updateExchangeCalc();
-    window.autoSuggestLayer(data);
-    
-    byId('signal').textContent = `⚡ ${data.home || 'Match'} ${data.gh}-${data.ga} | Min: ${data.minute}' | XG: ${data.xgh?.toFixed(2)}-${data.xga?.toFixed(2)}`;
-    byId('signal').classList.remove('signal-empty');
+    try {
+        const data = parseRawMatchText(raw);
+        console.log('Parsed Data:', data);
+        
+        if (!data.home || !data.away) {
+            byId('signal').textContent = "⚠️ Formato non riconosciuto. Assicurati di includere nomi squadre (es. Team A vs Team B).";
+            byId('signal').classList.add('signal-empty');
+            return;
+        }
+
+        lastData = data;
+        calcMomentum(data);
+        updateExchangeCalc();
+        window.autoSuggestLayer(data);
+        
+        byId('signal').textContent = `⚡ ${data.home} ${data.gh}-${data.ga} | Min: ${data.minute}' | XG: ${data.xgh?.toFixed(2)}-${data.xga?.toFixed(2)}`;
+        byId('signal').classList.remove('signal-empty');
+        console.log('Analysis Complete');
+    } catch (e) {
+        console.error('Analysis Crash:', e);
+        byId('signal').textContent = `💥 Errore critico nel parser: ${e.message}`;
+    }
 }
 
 async function runAI() {

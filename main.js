@@ -608,9 +608,14 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     const xgGapH = (lastData.xgh || 0) - (lastData.gh || 0);
     const xgGapA = (lastData.xga || 0) - (lastData.ga || 0);
     const totalXG = (lastData.xgh || 0) + (lastData.xga || 0);
+    const daPerMin = ((lastData.stats.da?.[0] || 0) + (lastData.stats.da?.[1] || 0)) / Math.max(lastData.minute, 1);
 
     // Elite Criteria for Signal Validation
-    if (ev >= 0.5 && mHome >= 75 && xgGapH >= 0.6 && trend !== 'STABLE') {
+    if (lastData.minute >= 15 && lastData.minute <= 35 && lastData.gh === 0 && lastData.ga === 0 && daPerMin >= 0.8 && totalXG >= 0.4) {
+      signal = '🔥 PT EXPLOSION';
+      color = '#f59e0b';
+      msg = `💥 OPPORTUNITÀ PT — Intensità altissima (${daPerMin.toFixed(2)} DA/min). XG ${totalXG.toFixed(2)} chiama il gol prima dell'intervallo. Valuta Over 0.5 PT.`;
+    } else if (ev >= 0.5 && mHome >= 75 && xgGapH >= 0.6 && trend !== 'STABLE') {
       signal = 'BUY HOME (ELITE)';
       color = '#2dd4bf';
       msg = `✅ BACK ${lastData.home} — Surge Rilevato (${mHome}%). XG Gap MASSIVO (+${xgGapH.toFixed(2)}). EV Reale: €${ev}.`;

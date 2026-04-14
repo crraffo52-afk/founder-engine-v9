@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="it">
 <head>
   <meta charset="UTF-8">
@@ -21,14 +21,15 @@
     <div class="status">
       <div class="dot"></div>
       <span class="status-chip"><span class="status-key">STATUS</span><span class="status-val">ONLINE</span></span>
-      <span class="status-chip"><span class="status-key">MODALITÀ</span><span class="status-val" id="modeChip">IN ATTESA</span></span>
+      <span class="status-chip"><span class="status-key">MODALIT├Ç</span><span class="status-val" id="modeChip">IN ATTESA</span></span>
       <span class="status-chip"><span class="status-key">PROVIDER</span><span class="status-val" id="providerText">Auto-Detect</span></span>
     </div>
 
     <!-- TAB NAV -->
     <div class="tab-nav">
-      <button class="tab-btn active" id="tabLive" onclick="switchTab('live')">⚡ LIVE SCOUT</button>
-      <button class="tab-btn" id="tabTracker" onclick="switchTab('tracker')" style="color:var(--accent);">📈 TRACKER</button>
+      <button class="tab-btn active" id="tabLive" onclick="switchTab('live')">ÔÜí LIVE SCOUT</button>
+      <button class="tab-btn" id="tabPre" onclick="switchTab('pre')">­ƒöì PRE-MATCH SCOUT</button>
+      <button class="tab-btn" id="tabTracker" onclick="switchTab('tracker')" style="color:var(--accent);">­ƒôê TRACKER</button>
     </div>
 
     <!-- LIVE TAB -->
@@ -38,13 +39,13 @@
       <section class="card col-5">
         <h2>Dati Grezzi (Scanner)</h2>
         <label for="scanner">Incolla i dati live della partita qui sotto</label>
-        <textarea id="scanner" placeholder="Incolla qui i dati grezzi da Diretta Gol, Sofascore, Flashscore...&#10;&#10;Il motore parserà automaticamente:&#10;• Squadre &amp; Score&#10;• Minuto di gioco&#10;• XG (ufficiale o Proxy)&#10;• Tiri, Attacchi, Angoli&#10;• Quote live"></textarea>
+        <textarea id="scanner" placeholder="Incolla qui i dati grezzi da Diretta Gol, Sofascore, Flashscore...&#10;&#10;Il motore parser├á automaticamente:&#10;ÔÇó Squadre &amp; Score&#10;ÔÇó Minuto di gioco&#10;ÔÇó XG (ufficiale o Proxy)&#10;ÔÇó Tiri, Attacchi, Angoli&#10;ÔÇó Quote live"></textarea>
         <div class="actions" style="margin-top:10px; gap:8px;">
-          <button id="importBtn" class="btn-main">⚡ Analizza Ora</button>
+          <button id="importBtn" class="btn-main">ÔÜí Analizza Ora</button>
           <button id="clearBtn">Clear</button>
         </div>
         <div style="margin-top:10px; border-top:1px solid rgba(255,255,255,0.08); padding-top:12px;">
-          <label style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">ℹ️ Le quote Back/Lay si inseriscono nel pannello Exchange qui sotto</label>
+          <label style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:1px;">Ôä╣´©Å Le quote Back/Lay si inseriscono nel pannello Exchange qui sotto</label>
         </div>
       </section>
 
@@ -77,7 +78,7 @@
           </div>
           <div class="kv">
             <span>ATTACKING VELOCITY (5' TREND)</span>
-            <span class="velocity"><span id="trendDot">●</span><span id="trendTxt">STABLE</span></span>
+            <span class="velocity"><span id="trendDot">ÔùÅ</span><span id="trendTxt">STABLE</span></span>
           </div>
         </div>
       </section>
@@ -117,7 +118,7 @@
 
       <!-- EXCHANGE TRADING PANEL -->
       <section class="card col-12" id="exchangePanel">
-        <h2>⚡ Exchange Trading Calculator</h2>
+        <h2>ÔÜí Exchange Trading Calculator</h2>
         <div class="exchange-grid">
 
           <!-- INPUTS -->
@@ -133,11 +134,11 @@
                 <input id="lx" type="number" step="0.01" placeholder="3.20">
               </div>
               <div>
-                <label>Stake Back (€)</label>
+                <label>Stake Back (Ôé¼)</label>
                 <input id="stake" type="number" step="0.5" value="10">
               </div>
               <div>
-                <label>Bankroll (€)</label>
+                <label>Bankroll (Ôé¼)</label>
                 <input id="bank" type="number" value="100">
               </div>
             </div>
@@ -149,15 +150,15 @@
             <div class="ex-metrics">
               <div class="ex-metric">
                 <span class="ex-metric-label">Profitto Back</span>
-                <strong id="calcBackProfit" class="ex-metric-val ok">€0.00</strong>
+                <strong id="calcBackProfit" class="ex-metric-val ok">Ôé¼0.00</strong>
               </div>
               <div class="ex-metric">
                 <span class="ex-metric-label">Lay Liability</span>
-                <strong id="calcLayLiability" class="ex-metric-val danger">€0.00</strong>
+                <strong id="calcLayLiability" class="ex-metric-val danger">Ôé¼0.00</strong>
               </div>
               <div class="ex-metric">
                 <span class="ex-metric-label">Lay Stake Consigliato</span>
-                <strong id="calcLayStake" class="ex-metric-val accent">€0.00</strong>
+                <strong id="calcLayStake" class="ex-metric-val accent">Ôé¼0.00</strong>
               </div>
               <div class="ex-metric">
                 <span class="ex-metric-label">Quota Lay Break-Even</span>
@@ -171,20 +172,20 @@
             <div class="ex-label">GREEN-UP STUDIO (EUR)</div>
             <div class="ex-metrics">
               <div class="ex-metric">
-                <span class="ex-metric-label">💹 Target Green-up</span>
-                <strong id="calcGreenTarget" class="ex-metric-val ok">€0.00</strong>
+                <span class="ex-metric-label">­ƒƒó Target Green-up</span>
+                <strong id="calcGreenTarget" class="ex-metric-val ok">Ôé¼0.00</strong>
               </div>
               <div class="ex-metric">
-                <span class="ex-metric-label">🛑 Stop Loss Max</span>
-                <strong id="calcStopLoss" class="ex-metric-val danger">€0.00</strong>
+                <span class="ex-metric-label">­ƒö┤ Stop Loss Max</span>
+                <strong id="calcStopLoss" class="ex-metric-val danger">Ôé¼0.00</strong>
               </div>
               <div class="ex-metric">
-                <span class="ex-metric-label">📊 ROI Atteso</span>
+                <span class="ex-metric-label">­ƒôè ROI Atteso</span>
                 <strong id="calcROI" class="ex-metric-val accent">0.00%</strong>
               </div>
               <div class="ex-metric">
-                <span class="ex-metric-label">🎯 Exp Val (EV)</span>
-                <strong id="calcEV" class="ex-metric-val warn">€0.00</strong>
+                <span class="ex-metric-label">­ƒÄ» Exp Val (EV)</span>
+                <strong id="calcEV" class="ex-metric-val warn">Ôé¼0.00</strong>
               </div>
             </div>
           </div>
@@ -203,15 +204,88 @@
 
     </main>
 
+    <!-- PRE-MATCH TAB -->
+    <main class="grid" id="tabPreContent" style="display:none;">
+
+      <!-- SCOUT INPUT -->
+      <section class="card col-12">
+        <h2>­ƒöì Pre-Match Scout ÔÇö Analisi AI su Tutti i Mercati</h2>
+        <div class="prematch-form">
+          <div class="pm-row">
+            <div class="pm-field">
+              <label>Squadra CASA</label>
+              <input id="pmHome" type="text" placeholder="es: Inter, Arsenal, Real Madrid..." autocomplete="off">
+            </div>
+            <div class="pm-field">
+              <label>Squadra OSPITE</label>
+              <input id="pmAway" type="text" placeholder="es: Milan, Chelsea, Barcelona..." autocomplete="off">
+            </div>
+            <div class="pm-field pm-field-sm">
+              <label>Lega</label>
+              <select id="pmLeague">
+                <option value="Serie A">­ƒç«­ƒç╣ Serie A</option>
+                <option value="Premier League">­ƒÅ┤¾áüº¾áüó¾áüÑ¾áü«¾áüº¾áü┐ Premier League</option>
+                <option value="La Liga">­ƒç¬­ƒç© La Liga</option>
+                <option value="Bundesliga">­ƒç®­ƒç¬ Bundesliga</option>
+                <option value="Ligue 1">­ƒç½­ƒçÀ Ligue 1</option>
+                <option value="Champions League">­ƒÅå Champions League</option>
+                <option value="Europa League">­ƒÅå Europa League</option>
+              </select>
+            </div>
+            <div class="pm-field pm-field-btn">
+              <button class="btn-main" id="scoutBtn" onclick="runPreMatch()">­ƒöì SCOUT MATCH</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATS COMPARISON -->
+      <section class="card col-12" id="pmStatsSection" style="display:none;">
+        <h2>­ƒôè Statistiche Stagionali ÔÇö Sbancobet <span id="pmStatsTitle" style="color:var(--accent); font-size:13px; font-weight:400;"></span></h2>
+        <div class="pm-stats-grid">
+          <div id="pmHomeStats" class="pm-stat-card"></div>
+          <div id="pmAwayStats" class="pm-stat-card"></div>
+        </div>
+      </section>
+
+      <!-- SUMMARY -->
+      <section class="card col-12" id="pmSummarySection" style="display:none;">
+        <h2>­ƒºá Analisi AI del Match</h2>
+        <div id="pmSummaryBox" class="signal-box"></div>
+        <div id="pmVerdictBadge" style="margin-top:10px; text-align:center;"></div>
+      </section>
+
+      <!-- MARKET CARDS -->
+      <section class="card col-12" id="pmMarketsSection" style="display:none;">
+        <h2>­ƒÄ» Analisi Mercati ÔÇö Output Completo</h2>
+        <div id="pmMarketsGrid" class="pm-markets-grid"></div>
+      </section>
+
+      <!-- TELEGRAM SIGNAL -->
+      <section class="card col-12" id="pmTelegramSection" style="display:none;">
+        <h2>­ƒôí Telegram Signal</h2>
+        <div id="pmTelegramBox" class="pm-telegram-box"></div>
+      </section>
+
+      <!-- LOADING STATE -->
+      <section class="card col-12" id="pmLoadingSection" style="display:none;">
+        <div class="pm-loading">
+          <div class="pm-spinner"></div>
+          <p id="pmLoadingText">Connessione a FBref in corso...</p>
+        </div>
+      </section>
+
+    </main>
+
     <!-- TRACKER TAB -->
     <main class="grid" id="tabTrackerContent" style="display:none;">
       <!-- TRACKER SUMMARY -->
       <section class="card col-12">
-        <h2>📈 Performance Dashboard</h2>
+        <h2>­ƒôê Performance Dashboard</h2>
         <div class="ex-metrics">
           <div class="ex-metric"><span class="ex-metric-label">Totale Picks</span><strong id="trTotal" class="ex-metric-val">0</strong></div>
           <div class="ex-metric"><span class="ex-metric-label">Win Rate</span><strong id="trWinRate" class="ex-metric-val ok">0%</strong></div>
-          <div class="ex-metric"><span class="ex-metric-label">Simulated PnL (Stk €10)</span><strong id="trPnL" class="ex-metric-val accent">€0.00</strong></div>
+          <div class="ex-metric"><span class="ex-metric-label">Simulated PnL (Stk Ôé¼10)</span><strong id="trPnL" class="ex-metric-val accent">Ôé¼0.00</strong></div>
           <div class="ex-metric"><span class="ex-metric-label">Strike Rate 7 gg</span><strong id="trStrike" class="ex-metric-val warn">0%</strong></div>
         </div>
       </section>
@@ -244,3 +318,4 @@
   <script type="module" src="/main.js"></script>
 </body>
 </html>
+

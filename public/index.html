@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>THE FOUNDER ENGINE V9.0 | Master of the Pitch</title>
+  <title>THE FOUNDER ENGINE V9.0 | Master of the Pitch - UPDATED</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -28,6 +28,7 @@
     <!-- TAB NAV -->
     <div class="tab-nav">
       <button class="tab-btn active" id="tabLive" onclick="switchTab('live')">⚡ LIVE SCOUT</button>
+      <button class="tab-btn" id="tabPre" onclick="switchTab('pre')">🔍 PRE-MATCH SCOUT</button>
       <button class="tab-btn" id="tabTracker" onclick="switchTab('tracker')" style="color:var(--accent);">📈 TRACKER</button>
     </div>
 
@@ -100,6 +101,13 @@
           <div class="greenup-item"><span>Stop Loss</span><strong id="stopLoss" style="color:var(--danger)">-20%</strong></div>
           <div class="greenup-item"><span>Exit Trigger</span><strong id="exitTrigger">Goal Fav</strong></div>
         </div>
+
+        <!-- TELEGRAM LIVE SIGNAL (Hidden by default) -->
+        <div id="liveTelegramSection" style="display:none; margin-top: 15px;">
+          <h3 style="font-size:12px; color:var(--muted); margin-bottom:8px;">📢 Telegram Live Signal</h3>
+          <div id="liveTelegramBox" class="pm-telegram-box" style="white-space: pre-wrap; font-family: monospace; font-size: 11px; background: rgba(0,0,0,0.3); padding: 10px; border-radius: 4px; color: var(--accent);"></div>
+          <button id="copyLiveTelegramBtn" class="btn-main" style="width:100%; margin-top:8px;">📋 Copia per Telegram</button>
+        </div>
       </section>
 
       <!-- TARGET STRATEGY -->
@@ -110,7 +118,7 @@
           <div class="item" id="strat-scattergun"><span class="badge v90">V9.0</span><b>Scattergun</b><div class="small">Target: Dutching 1-1, 2-1, 1-2. Tactical.</div></div>
           <div class="item" id="strat-btl"><span class="badge punta">PUNTA</span><b>Back to Lay</b><div class="small">Target: Favorito dominante (XG &gt; 1.2).</div></div>
           <div class="item" id="strat-layfav"><span class="badge banka">BANCA</span><b>Lay Favourite</b><div class="small">Target: Favorito in stallo/crisi statistica.</div></div>
-          <div class="item" id="strat-scalp"><span class="badge punta">PUNTA</span><b>Scalp Under</b><div class="small">Target: Match sterile (Total XG &lt; 0.6).</div></div>
+          <div class="item" id="strat-scalp"><span class="badge punta">PUNTA</span><b>Scalp Over</b><div class="small" id="strat-scalp-desc">Target: Aggressione dinamica (DA/min > 0.85).</div></div>
           <div class="item" id="strat-power"><span class="badge v90">V9.0</span><b>Power Play</b><div class="small">Target: Pressione dopo 70' con mismatch momentum.</div></div>
         </div>
       </section>
@@ -203,6 +211,79 @@
 
     </main>
 
+    <!-- PRE-MATCH TAB -->
+    <main class="grid" id="tabPreContent" style="display:none;">
+
+      <!-- SCOUT INPUT -->
+      <section class="card col-12">
+        <h2>🔍 Pre-Match Scout — Analisi AI su Tutti i Mercati</h2>
+        <div class="prematch-form">
+          <div class="pm-row">
+            <div class="pm-field">
+              <label>Squadra CASA</label>
+              <input id="pmHome" type="text" placeholder="es: Inter, Arsenal, Real Madrid..." autocomplete="off">
+            </div>
+            <div class="pm-field">
+              <label>Squadra OSPITE</label>
+              <input id="pmAway" type="text" placeholder="es: Milan, Chelsea, Barcelona..." autocomplete="off">
+            </div>
+            <div class="pm-field pm-field-sm">
+              <label>Lega</label>
+              <select id="pmLeague">
+                <option value="Serie A">🇮🇹 Serie A</option>
+                <option value="Premier League">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</option>
+                <option value="La Liga">🇪🇸 La Liga</option>
+                <option value="Bundesliga">🇩🇪 Bundesliga</option>
+                <option value="Ligue 1">🇫🇷 Ligue 1</option>
+                <option value="Champions League">🏆 Champions League</option>
+                <option value="Europa League">🏆 Europa League</option>
+              </select>
+            </div>
+            <div class="pm-field pm-field-btn">
+              <button class="btn-main" id="scoutBtn" onclick="runPreMatch()">🔍 SCOUT MATCH</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STATS COMPARISON -->
+      <section class="card col-12" id="pmStatsSection" style="display:none;">
+        <h2>📊 Statistiche Stagionali — Sbancobet <span id="pmStatsTitle" style="color:var(--accent); font-size:13px; font-weight:400;"></span></h2>
+        <div class="pm-stats-grid">
+          <div id="pmHomeStats" class="pm-stat-card"></div>
+          <div id="pmAwayStats" class="pm-stat-card"></div>
+        </div>
+      </section>
+
+      <!-- SUMMARY -->
+      <section class="card col-12" id="pmSummarySection" style="display:none;">
+        <h2>🧠 Analisi AI del Match</h2>
+        <div id="pmSummaryBox" class="signal-box"></div>
+        <div id="pmVerdictBadge" style="margin-top:10px; text-align:center;"></div>
+      </section>
+
+      <!-- MARKET CARDS -->
+      <section class="card col-12" id="pmMarketsSection" style="display:none;">
+        <h2>🎯 Analisi Mercati — Output Completo</h2>
+        <div id="pmMarketsGrid" class="pm-markets-grid"></div>
+      </section>
+
+      <!-- TELEGRAM SIGNAL -->
+      <section class="card col-12" id="pmTelegramSection" style="display:none;">
+        <h2>📢 Telegram Signal</h2>
+        <div id="pmTelegramBox" class="pm-telegram-box"></div>
+      </section>
+
+      <!-- LOADING STATE -->
+      <section class="card col-12" id="pmLoadingSection" style="display:none;">
+        <div class="pm-loading">
+          <div class="pm-spinner"></div>
+          <p id="pmLoadingText">Connessione a Sbancobet in corso...</p>
+        </div>
+      </section>
+
+    </main>
+
     <!-- TRACKER TAB -->
     <main class="grid" id="tabTrackerContent" style="display:none;">
       <!-- TRACKER SUMMARY -->
@@ -218,7 +299,7 @@
 
       <!-- TRACKER HISTORY -->
       <section class="card col-12">
-        <h2>Storico Scommesse Salvarte</h2>
+        <h2>Storico Scommesse Salvate</h2>
         <div style="overflow-x: auto;">
           <table style="width:100%; text-align:left; border-collapse:collapse; font-size:13px;">
             <thead>

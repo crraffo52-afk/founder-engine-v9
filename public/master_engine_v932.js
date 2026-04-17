@@ -1,4 +1,4 @@
-﻿/**
+/**
  * THE FOUNDER ENGINE V9.0 - MASTER OF THE PITCH
  * Raw-First Architecture: Parser is the Heart
  */
@@ -321,10 +321,16 @@ function updateDynamicStrategies(data, momentum) {
       (xgGapA > 0.3 && mAway > 58 && daRateA > 0.35))
     byId('strat-btl')?.classList.add('strat-active');
 
-  // 3. SCALP UNDER
-  // Very low production, sterile match
-  if (min >= 20 && min <= 65 && totalXG < 0.4 &&
-      daPerMin < 0.4 && (soth + sota) <= 2 && Math.abs(mHome - mAway) < 15)
+  // 3. SCALP OVER (Dynamic)
+  // Dynamic aggression: next over level from current score
+  const scalpTarget = (data.gh + data.ga) + 0.5;
+  const scalpFreebet = (data.gh + data.ga) + 1.5;
+  const scalpDesc = byId('strat-scalp-desc');
+  if (scalpDesc) {
+    scalpDesc.textContent = `Target: Over ${scalpTarget} + Opzione Over ${scalpFreebet} per Freebet.`;
+  }
+
+  if (daPerMin > 0.85 || (totalXG > (data.gh + data.ga) + 0.6 && daPerMin > 0.6))
     byId('strat-scalp')?.classList.add('strat-active');
 
   // 4. POWER PLAY
@@ -420,6 +426,47 @@ function updateBookPreview(data) {
 
 // ÔöÇÔöÇÔöÇ STRATEGIC GUIDE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
 
+function generateLiveTelegramSignal(data, inst, metrics = {}) {
+  const mHome = metrics.mHome || 50;
+  const mAway = metrics.mAway || 50;
+  const daPerMin = metrics.daPerMin || 0;
+  
+  const hTeam = data.home || 'Casa';
+  const aTeam = data.away || 'Ospite';
+  const score = `${data.gh||0}-${data.ga||0}`;
+  const minute = data.minute ? `${data.minute}'` : 'HT';
+  const xgStr = `${(data.xgh||0).toFixed(2)}-${(data.xga||0).toFixed(2)}`;
+  
+  const b1 = data.odds?.back1;
+  const lx = data.odds?.layX;
+  const b2 = data.odds?.back2;
+  let oddsStr = '';
+  if (b1 && lx) {
+     oddsStr = `\n| Back1: ${b1} / LayX: ${lx}${b2 ? ' / Back2: ' + b2 : ''}`;
+  }
+  
+  let signalStr = `⏳ ${hTeam} ${score} ${aTeam} | Min: ${minute} | XG: ${xgStr}${oddsStr}
+
+BET: ${inst.bet}
+
+📋 ${inst.logic}
+
+🟢 ENTRATA: ${inst.entry}
+
+🔴 USCITA: ${inst.exit}
+
+⚠️ RISCHIO: ${inst.risk}
+
+OMNI-MONITORING
+Target: ${(inst.bet === 'WAIT' || inst.bet.includes('MONITOR')) ? "Studio dell'intensità live - No Bet Zone." : "Pressione: " + daPerMin.toFixed(2) + " DA/min | Momentum: " + mHome + "% vs " + mAway + "%"}
+
+---
+THE FOUNDER EXCHANGE | 70-WIN EDITION
+The Quant Revolution continues.`;
+
+  return signalStr;
+}
+
 function updateStrategicGuide(data, metrics = {}) {
   const activeS = document.querySelector('.strat .item.strat-active');
   const guide = byId('strategyGuide');
@@ -466,12 +513,12 @@ function updateStrategicGuide(data, metrics = {}) {
       greenup: { profit: '+25/40%', loss: '-15%', trigger: 'Gol dominante' }
     },
     'strat-scalp': {
-      bet: 'SCALP UNDER 2.5 / UNDER 1.5',
-      logic: `Match sterile. DA/min: ${daPerMin.toFixed(2)} (sotto soglia 0.40). XG: ${totalXG.toFixed(2)}. Nessuna pressione reale.`,
-      entry: 'Scalp UNDER per 5-10 minuti. Max 15 tick di esposizione.',
-      exit: 'Uscire al primo DA significativo o se DA/min supera 0.50.',
-      risk: 'Controllata.',
-      greenup: { profit: '+10/20%', loss: '-5%', trigger: 'Time Decay / DA Alert' }
+      bet: `SCALP OVER ${(data.gh + data.ga) + 0.5}`,
+      logic: `Aggressione dinamica rilevata. DA/min: ${daPerMin.toFixed(2)} — pressione costante. XG totale (${totalXG.toFixed(2)}) chiama il prossimo gol.`,
+      entry: `Scalp OVER ${(data.gh + data.ga) + 0.5} per 5-8 minuti. Sfrutta il momentum di ${mHome > mAway ? homeTeam : awayTeam}.`,
+      exit: `🟢 Uscire al primo gol in Green-up (+35%) OPPURE attendere il gol e lasciare il profitto su Over ${(data.gh + data.ga) + 1.5} (FREEBET).`,
+      risk: 'Media (Exposure limitata).',
+      greenup: { profit: '+20/35%', loss: '-15%', trigger: 'Goal Imminente' }
     },
     'strat-power': {
       bet: `OVER 0.5 / BACK ${mHome > mAway ? homeTeam : awayTeam}`,
@@ -499,7 +546,14 @@ function updateStrategicGuide(data, metrics = {}) {
     }
   };
 
-  const inst = instructions[activeS.id] || { bet: 'WAIT', logic: 'Seguire il momentum.', entry: 'Ingresso disciplinato.', exit: 'Target raggiunto.', risk: 'N/A', greenup: { profit: 'N/A', loss: 'N/A', trigger: 'N/A' } };
+  const inst = activeS ? instructions[activeS.id] : { 
+    bet: 'MONITOR (In attesa)', 
+    logic: 'Nessuna strategia in trigger. Momentum in fase di accumulo o in attesa di variazioni.', 
+    entry: 'Nessun ingresso consigliato al momento. Match sotto osservazione.', 
+    exit: `Attendere picco di pressione (DA/min attuale: ${(metrics.daPerMin||0).toFixed(2)}).`, 
+    risk: 'Nullo (In attesa).', 
+    greenup: { profit: 'N/A', loss: 'N/A', trigger: 'N/A' } 
+  };
 
   guide.innerHTML = `
     <div class="bet-badge">BET: ${inst.bet}</div>
@@ -515,6 +569,13 @@ function updateStrategicGuide(data, metrics = {}) {
     byId('targetProfit').textContent = inst.greenup.profit;
     byId('stopLoss').textContent = inst.greenup.loss;
     byId('exitTrigger').textContent = inst.greenup.trigger;
+  }
+
+  const telSection = byId('liveTelegramSection');
+  const telBox = byId('liveTelegramBox');
+  if (telSection && telBox) {
+    telSection.style.display = 'block';
+    telBox.textContent = generateLiveTelegramSignal(data, inst, metrics);
   }
 }
 
@@ -743,6 +804,18 @@ function init() {
   ['b1', 'lx', 'stake', 'bank'].forEach(id => {
     byId(id)?.addEventListener('input', updateExchangeCalc);
   });
+
+  const copyLiveTel = byId('copyLiveTelegramBtn');
+  if (copyLiveTel) {
+    copyLiveTel.addEventListener('click', () => {
+      const text = byId('liveTelegramBox')?.textContent;
+      if (text) {
+        navigator.clipboard.writeText(text);
+        copyLiveTel.textContent = '✅ Copiato!';
+        setTimeout(() => copyLiveTel.textContent = '📋 Copia per Telegram', 2000);
+      }
+    });
+  }
 }
 
 init();

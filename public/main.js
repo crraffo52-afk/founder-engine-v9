@@ -345,6 +345,28 @@ function updateDynamicStrategies(data, momentum) {
       (data.gh + data.ga) <= 1 && daPerMin > 0.55)
     byId('strat-scattergun')?.classList.add('strat-active');
 
+  // --- OMNI-ELITE PACK ---
+
+  // 7. ASSALTO AL FORTINO (Lay The Leader)
+  // Leader is under siege in the last 15 mins
+  if (min >= 75 && ((data.gh > data.ga && daRateA > 0.8 && sota >= 3) || (data.ga > data.gh && daRateH > 0.8 && soth >= 3)))
+    byId('strat-fortino')?.classList.add('strat-active');
+
+  // 8. SCALPING DEAD ZONE (Time Decay)
+  // Completely dead game, both teams not doing much
+  if (min >= 25 && min <= 70 && daTotal / min < 0.35 && totalXG < 0.6)
+    byId('strat-deadzone')?.classList.add('strat-active');
+
+  // 9. FADE THE LUCK (Contro-Mercato su Gol Casuale)
+  // Team is winning but heavily dominated
+  if ((data.gh > data.ga && xgGapA > 1.0 && soth < 2) || (data.ga > data.gh && xgGapH > 1.0 && sota < 2))
+    byId('strat-fade')?.classList.add('strat-active');
+
+  // 10. DUTCHING 1° TEMPO (HT Pressure Exploit)
+  // Huge pressure right before HT
+  if (min >= 28 && min <= 44 && daTotal / min > 1.2 && data.gh === 0 && data.ga === 0 && Math.abs(mHome - mAway) < 15)
+    byId('strat-ht')?.classList.add('strat-active');
+
   updateStrategicGuide(data, { mHome, mAway, daPerMin, daRateH, daRateA, sotEffH, sotEffA, xgGapH, xgGapA, totalXG });
 }
 
@@ -578,6 +600,38 @@ function updateStrategicGuide(data, metrics = {}) {
       exit: 'Uscire al secondo gol con profit protetto.',
       risk: 'Media.',
       greenup: { profit: '+20/35%', loss: '-15%', trigger: 'Secondo Gol' }
+    },
+    'strat-fortino': {
+      bet: `LAY ${data.gh > data.ga ? homeTeam : awayTeam} (Leader Sotto Assedio)`,
+      logic: `Minuto ${min}'. ${data.gh > data.ga ? homeTeam : awayTeam} vince ma subisce una pressione brutale: DA/min avversario a ${(data.gh > data.ga ? daRateA : daRateH).toFixed(2)}.`,
+      entry: `Banca se quota < 1.30. Sfruttiamo il rapporto Rischio/Rendimento (EV estremo).`,
+      exit: 'Green-Up al pareggio. Uscita totale al minuto 88 se il punteggio non cambia.',
+      risk: 'Media (Per via della quota bassa)',
+      greenup: { profit: '+300/500%', loss: '-10/15%', trigger: 'Pareggio / Min 88' }
+    },
+    'strat-deadzone': {
+      bet: `BACK UNDER ${data.gh + data.ga + 1.5} / SCALP UNDER`,
+      logic: `Nessuna squadra sta accelerando. DA complessivo: ${daPerMin.toFixed(2)}. XG totali anemici (${totalXG.toFixed(2)}).`,
+      entry: 'Punta sull\'Under corrente. Partita tattica e lenta.',
+      exit: 'Mungere il Time Decay per 5-8 minuti. Uscire se DA/min supera 0.50.',
+      risk: 'Controllata.',
+      greenup: { profit: '+15/20%', loss: '-5%', trigger: 'Time Decay (8 min)' }
+    },
+    'strat-fade': {
+      bet: `LAY ${data.gh > data.ga ? homeTeam : awayTeam} (Fade The Luck)`,
+      logic: `Vantaggio immeritato. XG Gap reale: +${Math.max(xgGapH, xgGapA).toFixed(2)} per chi sta perdendo.`,
+      entry: 'Bancare chi ha segnato per puro caso (quota in compressione ingiustificata).',
+      exit: 'Uscire al pareggio o se la squadra in svantaggio smette di produrre (DA crolla).',
+      risk: 'Alta (Contromercato).',
+      greenup: { profit: '+40/60%', loss: '-20%', trigger: 'Riequilibrio Score' }
+    },
+    'strat-ht': {
+      bet: `DUTCHING OVER 0.5 HT + OVER 1.5 FT`,
+      logic: `Minuto ${min}'. Fase Box-to-Box intensissima (DA/min cumulativo ${daPerMin.toFixed(2)}). Gap momentum nullo. Entrambe vogliono segnare prima del riposo.`,
+      entry: 'Coprire mercato Goal HT e Over FT (1.5).',
+      exit: 'Uscita massiva al primo gol HT. Perdere stake su mercato HT se non segnano entro il 45\'.',
+      risk: 'Media-Alta.',
+      greenup: { profit: '+60/80%', loss: 'Stake HT', trigger: 'Gol Precedentemente HT' }
     }
   };
 

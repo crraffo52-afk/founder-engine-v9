@@ -1085,6 +1085,33 @@ window.updateTrackerStatus = async function(id, action) {
   }
 };
 
+window.copyOutcomeSignal = function(btn, match, label, pick, odd, status, pnl) {
+  const pnlNum = parseFloat(pnl) || 0;
+  const isWin = pnlNum > 0 || status === 'WIN';
+  const isLoss = pnlNum < 0 || status === 'LOSE';
+  const isCashout = status === 'CASHOUT';
+  
+  let header = isWin ? '✅ WIN/GREEN-UP CONFERMATO ✅' : (isLoss ? '❌ STOP LOSS / LOSE ❌' : '⚪ VOID / PAREGGIO ⚪');
+  let outcomeText = isCashout ? `Cashout (PnL: €${pnlNum.toFixed(2)})` : `${status} (PnL: €${pnlNum.toFixed(2)})`;
+  if (pnlNum > 0 && isCashout) outcomeText = `+${outcomeText}`; // visual aesthetic
+  
+  const msg = `${header}
+⚽ ${match}
+📋 Mercato: ${label}
+👉 Pick: ${pick} (Quota ref: ${odd})
+
+💰 ESITO: ${outcomeText}
+
+---
+THE FOUNDER EXCHANGE | 70-WIN EDITION`;
+  
+  navigator.clipboard.writeText(msg).then(() => {
+    const oldTxt = btn.textContent;
+    btn.textContent = '✅ Copiato!';
+    setTimeout(() => btn.textContent = oldTxt, 2000);
+  });
+};
+
 window.loadTracker = async function() {
   try {
     const res = await fetch('/api/history');
@@ -1139,7 +1166,7 @@ window.loadTracker = async function() {
         <button onclick="updateTrackerStatus('${h.id}', 'CASHOUT')" style="background:var(--accent); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; color:#18181b;" title="Cashout manuale">C-OUT</button>
         <button onclick="updateTrackerStatus('${h.id}', 'FULL_WIN')" style="background:var(--ok); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;" title="Full Win">✅</button>
         <button onclick="updateTrackerStatus('${h.id}', 'FULL_LOSS')" style="background:var(--danger); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;" title="Full Loss">❌</button>
-      ` : `<span style="color:var(--muted); font-size:11px;">PnL: €${(h.pnl||0).toFixed(2)}</span>`;
+      ` : `<span style="color:var(--muted); font-size:11px; margin-right: 10px;">PnL: €${(h.pnl||0).toFixed(2)}</span><button onclick="copyOutcomeSignal(this, \`${h.match}\`, \`${h.label}\`, \`${h.pick}\`, \`${h.odd}\`, \`${h.status}\`, \`${h.pnl}\`)" style="background:rgba(56,189,248,0.2); border:1px solid var(--accent); padding:2px 8px; border-radius:12px; font-size:10px; font-weight:bold; cursor:pointer; color:var(--accent);">📢 Telegram</button>`;
       
       const badgeColor = isWinOrGreen ? 'var(--ok)' : isLossOrRed ? 'var(--danger)' : 'var(--muted)';
       const statusBadge = `<span style="padding:2px 8px; border-radius:12px; background:${badgeColor}22; color:${badgeColor}; font-weight:bold; font-size:11px;">${h.status}</span>`;

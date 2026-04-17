@@ -182,16 +182,16 @@ function displayParsedStats(data) {
 
   el.innerHTML = `
     <div class="stat-row highlight">
-      <span class="stat-label">ÔÜ¢ SCORE</span>
+      <span class="stat-label">⚽ SCORE</span>
       <span class="stat-home">${data.home}</span>
       <span class="stat-val"><b>${data.gh} : ${data.ga}</b></span>
       <span class="stat-away">${data.away}</span>
     </div>
     <div class="stat-row">
       <span class="stat-label">⌚ MINUTO</span>
-      <span class="stat-home">ÔÇö</span>
+      <span class="stat-home">—</span>
       <span class="stat-val">${data.minute}'</span>
-      <span class="stat-away">ÔÇö</span>
+      <span class="stat-away">—</span>
     </div>
     <div class="stat-row highlight">
       <span class="stat-label">📈 XG ${xgMode}</span>
@@ -206,37 +206,38 @@ function displayParsedStats(data) {
       <span class="stat-away">${get('sot',1)}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">­ƒÆÑ Attacchi Pericolosi</span>
+      <span class="stat-label">💥 Attacchi Pericolosi</span>
       <span class="stat-home">${get('da',0)}</span>
       <span class="stat-val">DA</span>
       <span class="stat-away">${get('da',1)}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">­ƒôÉ Tiri Totali</span>
+      <span class="stat-label">👟 Tiri Totali</span>
       <span class="stat-home">${get('st',0)}</span>
       <span class="stat-val">ST</span>
       <span class="stat-away">${get('st',1)}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">­ƒÜ® Calci d'Angolo</span>
+      <span class="stat-label">🚩 Calci d'Angolo</span>
       <span class="stat-home">${get('cor',0)}</span>
       <span class="stat-val">COR</span>
       <span class="stat-away">${get('cor',1)}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">ÔÜÖ´©Å Possesso</span>
+      <span class="stat-label">⚖️ Possesso</span>
       <span class="stat-home">${get('pos',0,'%')}</span>
       <span class="stat-val">POS</span>
       <span class="stat-away">${get('pos',1,'%')}</span>
     </div>
     ${data.odds ? `
     <div class="stat-row highlight">
-      <span class="stat-label">­ƒÆ╣ Quote Exchange</span>
+      <span class="stat-label">💶 Quote Exchange</span>
       <span class="stat-home" style="font-size:13px;">Back1: ${data.odds.back1}</span>
       <span class="stat-val">ODDS</span>
       <span class="stat-away" style="font-size:13px;">LayX: ${data.odds.layX}</span>
     </div>` : ''}
   `;
+
 
   byId('providerText').textContent = data.provider;
   byId('modeChip').textContent = data.proxyXG ? 'PROXY XG MODE' : 'XG LIVE MODE';

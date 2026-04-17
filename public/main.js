@@ -10,7 +10,7 @@ let lastData = null;
 let autoTimer = null;
 let engineBusy = false;
 
-// ÔöÇÔöÇÔöÇ PARSER ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── PARSER ───────────────────────────────────────────────────────────────────
 
 function parseRawMatchText(raw) {
   const lines = raw.replace(/\r/g, '\n').split('\n').map(l => l.trim()).filter(Boolean);
@@ -162,7 +162,7 @@ function parseRawMatchText(raw) {
   return result;
 }
 
-// ÔöÇÔöÇÔöÇ DISPLAY PARSED STATS ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── DISPLAY PARSED STATS ────────────────────────────────────────────────────
 
 function displayParsedStats(data) {
   const el = byId('parsedDisplay');
@@ -188,19 +188,19 @@ function displayParsedStats(data) {
       <span class="stat-away">${data.away}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">ÔÅ▒ MINUTO</span>
+      <span class="stat-label">⌚ MINUTO</span>
       <span class="stat-home">ÔÇö</span>
       <span class="stat-val">${data.minute}'</span>
       <span class="stat-away">ÔÇö</span>
     </div>
     <div class="stat-row highlight">
-      <span class="stat-label">­ƒôè XG ${xgMode}</span>
+      <span class="stat-label">📈 XG ${xgMode}</span>
       <span class="stat-home">${data.xgh?.toFixed(2)}</span>
       <span class="stat-val">vs</span>
       <span class="stat-away">${data.xga?.toFixed(2)}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">­ƒÄ» Tiri in Porta</span>
+      <span class="stat-label">🎯 Tiri in Porta</span>
       <span class="stat-home">${get('sot',0)}</span>
       <span class="stat-val">SOT</span>
       <span class="stat-away">${get('sot',1)}</span>
@@ -242,7 +242,7 @@ function displayParsedStats(data) {
   byId('modeChip').textContent = data.proxyXG ? 'PROXY XG MODE' : 'XG LIVE MODE';
 }
 
-// ÔöÇÔöÇÔöÇ MOMENTUM ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── MOMENTUM ─────────────────────────────────────────────────────────────────
 
 function calcMomentum(data) {
   const s = data.stats;
@@ -282,7 +282,7 @@ function calcMomentum(data) {
   return { mHome, mAway };
 }
 
-// ÔöÇÔöÇÔöÇ STRATEGY ENGINE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── STRATEGY ENGINE ─────────────────────────────────────────────────────────
 
 function updateDynamicStrategies(data, momentum) {
   const { mHome, mAway } = momentum;
@@ -321,16 +321,10 @@ function updateDynamicStrategies(data, momentum) {
       (xgGapA > 0.3 && mAway > 58 && daRateA > 0.35))
     byId('strat-btl')?.classList.add('strat-active');
 
-  // 3. SCALP OVER (Dynamic)
-  // Dynamic aggression: next over level from current score
-  const scalpTarget = (data.gh + data.ga) + 0.5;
-  const scalpFreebet = (data.gh + data.ga) + 1.5;
-  const scalpDesc = byId('strat-scalp-desc');
-  if (scalpDesc) {
-    scalpDesc.textContent = `Target: Over ${scalpTarget} + Opzione Over ${scalpFreebet} per Freebet.`;
-  }
-
-  if (daPerMin > 0.85 || (totalXG > (data.gh + data.ga) + 0.6 && daPerMin > 0.6))
+  // 3. SCALP UNDER
+  // Very low production, sterile match
+  if (min >= 20 && min <= 65 && totalXG < 0.4 &&
+      daPerMin < 0.4 && (soth + sota) <= 2 && Math.abs(mHome - mAway) < 15)
     byId('strat-scalp')?.classList.add('strat-active');
 
   // 4. POWER PLAY
@@ -354,7 +348,8 @@ function updateDynamicStrategies(data, momentum) {
 }
 
 
-// ÔöÇÔöÇÔöÇ BOOK PREVIEW ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── BOOK PREVIEW ─────────────────────────────────────────────────────────────
+
 function generateBookTelegramSignal(data, dynamicBets, corTotal) {
   const hTeam = data.home || 'Casa';
   const aTeam = data.away || 'Ospite';
@@ -403,15 +398,15 @@ function updateBookPreview(data) {
     dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Entrambe Segnano (WIN)', odd: '-', confidence: 'Alta', reason: 'Pick gi├á maturato. Valutare mercati successivi.' });
   } else if (totalXG > 1.5 && g('sot', 0) > 1 && g('sot', 1) > 1) {
     dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'Goal (S├¼)', odd: '1.80+', confidence: 'Alta', reason: 'Entrambe le squadre producono SOT e XG elevati (Match aperto).' });
-  } else if (totalXG > 0.8 && min > 20 && min < 60) {
-    dynamicBets.push({ label: 'MERCATO GOAL', pick: 'Goal Over 0.5 HT', odd: '1.50+', confidence: 'Alta', reason: 'Pressione costante in cerca del vantaggio prima dell\'intervallo.' });
+  } else if (totalXG < 0.6 && min > 45) {
+    dynamicBets.push({ label: 'GOAL / NO GOAL', pick: 'No Goal', odd: '1.50+', confidence: 'Media', reason: 'Pochissime occasioni prodotte (Match sterile).' });
   }
 
   let nextOver = totalGoals >= 2 ? 3.5 : (totalGoals === 1 ? 2.5 : 1.5);
   if (totalXG > totalGoals + 0.6 && daTotal / min > 0.5) {
     dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Over ${nextOver}`, odd: '1.75+', confidence: 'Alta', reason: `Ritmo forsennato, XG totale reale (${totalXG.toFixed(2)}) chiama altri gol.` });
-  } else if (totalXG > totalGoals && daTotal / min > 0.4) {
-    dynamicBets.push({ label: `SCALP OVER ${nextOver}`, pick: `Over ${nextOver}`, odd: '1.65+', confidence: 'Media', reason: `Inerzia offensiva rilevata. Caccia al gol Over ${nextOver} in modalità scalping dinamico.` });
+  } else if (totalXG <= totalGoals + 0.2 && min > 60 && daTotal / min < 0.4) {
+    dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Under ${nextOver}`, odd: '1.60+', confidence: 'Alta', reason: `Partita sterile, pochissima produzione offensiva al minuto ${min}'.` });
   }
 
   if (xgDiff > 0.6 && data.gh <= data.ga) {
@@ -447,7 +442,7 @@ function updateBookPreview(data) {
       <div class="book-pick">${b.pick}</div>
       <div class="book-odd" style="color:var(--accent);">Quota ref: ${b.odd}</div>
       <div class="book-note">${b.reason}</div>
-      <button onclick="saveTrackerPick('${b.label}', '${b.pick}', '${b.odd}')" style="margin-top:8px; width:100%; padding:6px; font-size:11px; cursor:pointer; background:var(--bg-card); color:var(--accent); border:1px solid var(--accent); border-radius:4px;">­ƒÆ¥ Salva Pick</button>
+      <button onclick="saveTrackerPick('${b.label}', '${b.pick}', '${b.odd}')" style="margin-top:8px; width:100%; padding:6px; font-size:11px; cursor:pointer; background:var(--bg-card); color:var(--accent); border:1px solid var(--accent); border-radius:4px;">💥 Salva Pick</button>
     </div>
   `).join('');
 
@@ -463,7 +458,7 @@ function updateBookPreview(data) {
   }
 }
 
-// ÔöÇÔöÇÔöÇ STRATEGIC GUIDE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── STRATEGIC GUIDE ─────────────────────────────────────────────────────────────
 
 function generateLiveTelegramSignal(data, inst, metrics = {}) {
   const mHome = metrics.mHome || 50;
@@ -519,17 +514,17 @@ function updateStrategicGuide(data, metrics = {}) {
   if (!activeS) {
     // Show pressure summary even when no strategy is active
     guide.innerHTML = `
-      <div style="color:var(--muted); margin-bottom:10px;">ÔÅ│ Nessuna strategia attiva. Analisi pressione in corso...</div>
+      <div style="color:var(--muted); margin-bottom:10px;">⏳ Nessuna strategia attiva. Analisi pressione in corso...</div>
       <div style="font-size:12px; display:grid; grid-template-columns:1fr 1fr; gap:8px;">
-        <div>­ƒôè DA/min: <b style="color:var(--accent)">${daPerMin.toFixed(2)}</b> ${daPerMin > 0.6 ? '­ƒöÑ ALTA' : daPerMin > 0.4 ? 'ÔÜí MEDIA' : 'ÔØä´©Å BASSA'}</div>
-        <div>­ƒôè XG Tot: <b style="color:var(--accent)">${totalXG.toFixed(2)}</b></div>
-        <div>­ƒÅá ${homeTeam}: ${daRateH.toFixed(2)} DA/min</div>
-        <div>Ô£ê´©Å ${awayTeam}: ${daRateA.toFixed(2)} DA/min</div>
-        <div>­ƒÄ» SOT-Eff H: ${(sotEffH*100).toFixed(0)}%</div>
-        <div>­ƒÄ» SOT-Eff A: ${(sotEffA*100).toFixed(0)}%</div>
+        <div>📈 DA/min: <b style="color:var(--accent)">${daPerMin.toFixed(2)}</b> ${daPerMin > 0.6 ? '🔥 ALTA' : daPerMin > 0.4 ? '🛡️ MEDIA' : '❄️ BASSA'}</div>
+        <div>📈 XG Tot: <b style="color:var(--accent)">${totalXG.toFixed(2)}</b></div>
+        <div>🏠 ${homeTeam}: ${daRateH.toFixed(2)} DA/min</div>
+        <div>✈️ ${awayTeam}: ${daRateA.toFixed(2)} DA/min</div>
+        <div>🎯 SOT-Eff H: ${(sotEffH*100).toFixed(0)}%</div>
+        <div>🎯 SOT-Eff A: ${(sotEffA*100).toFixed(0)}%</div>
       </div>
       <div style="margin-top:10px; color:var(--warn); font-size:11px;">
-        ${daPerMin > 0.6 ? 'ÔÜá´©Å Pressione ALTA ÔÇö monitorare per segnale LTD o BTL.' : 'Attendi che il ritmo di gioco superi la soglia operativa.'}
+        ${daPerMin > 0.6 ? '⚠️ Pressione ALTA ÔÇö monitorare per segnale LTD o BTL.' : 'Attendi che il ritmo di gioco superi la soglia operativa.'}
       </div>`;
     return;
   }
@@ -538,8 +533,8 @@ function updateStrategicGuide(data, metrics = {}) {
     'strat-ltd': {
       bet: 'LAY DRAW (BANCA X)',
       logic: `Score bloccato ${data.gh}:${data.ga} al ${min}'. ${daPerMin.toFixed(2)} DA/min ÔÇö pressione ${daPerMin > 0.6 ? 'ALTA' : 'MEDIA'}. XG ${totalXG.toFixed(2)} suggerisce gol imminente.`,
-      entry: `Entrare con LAY X se quota < 3.50. Pressione floor: ${daPerMin.toFixed(2)} DA/min Ô£ô`,
-      exit: `Ô£à Cash-out al primo gol (Green-up). ÔÜá´©Å Uscire al minuto 75-80 se score rimane ${data.gh}:${data.ga} (Rule of 70).`,
+      entry: `Entrare con LAY X se quota < 3.50. Pressione floor: ${daPerMin.toFixed(2)} DA/min ✔️`,
+      exit: `✅ Cash-out al primo gol (Green-up). ⚠️ Uscire al minuto 75-80 se score rimane ${data.gh}:${data.ga} (Rule of 70).`,
       risk: 'Media-Bassa.',
       greenup: { profit: '+30/50%', loss: '-20%', trigger: `Gol o Min 75` }
     },
@@ -552,16 +547,16 @@ function updateStrategicGuide(data, metrics = {}) {
       greenup: { profit: '+25/40%', loss: '-15%', trigger: 'Gol dominante' }
     },
     'strat-scalp': {
-      bet: `SCALP OVER ${(data.gh + data.ga) + 0.5}`,
-      logic: `Aggressione dinamica rilevata. DA/min: ${daPerMin.toFixed(2)} — pressione costante. XG totale (${totalXG.toFixed(2)}) chiama il prossimo gol.`,
-      entry: `Scalp OVER ${(data.gh + data.ga) + 0.5} per 5-8 minuti. Sfrutta il momentum di ${mHome > mAway ? homeTeam : awayTeam}.`,
-      exit: `🟢 Uscire al primo gol in Green-up (+35%) OPPURE attendere il gol e lasciare il profitto su Over ${(data.gh + data.ga) + 1.5} (FREEBET).`,
-      risk: 'Media (Exposure limitata).',
-      greenup: { profit: '+20/35%', loss: '-15%', trigger: 'Goal Imminente' }
+      bet: 'SCALP UNDER 2.5 / UNDER 1.5',
+      logic: `Match sterile. DA/min: ${daPerMin.toFixed(2)} (sotto soglia 0.40). XG: ${totalXG.toFixed(2)}. Nessuna pressione reale.`,
+      entry: 'Scalp UNDER per 5-10 minuti. Max 15 tick di esposizione.',
+      exit: 'Uscire al primo DA significativo o se DA/min supera 0.50.',
+      risk: 'Controllata.',
+      greenup: { profit: '+10/20%', loss: '-5%', trigger: 'Time Decay / DA Alert' }
     },
     'strat-power': {
       bet: `OVER 0.5 / BACK ${mHome > mAway ? homeTeam : awayTeam}`,
-      logic: `Fase finale al ${min}'. ${mHome > mAway ? homeTeam : awayTeam} in SURGE (${Math.max(mHome, mAway)}%). DA/min: ${daPerMin.toFixed(2)} ­ƒöÑ`,
+      logic: `Fase finale al ${min}'. ${mHome > mAway ? homeTeam : awayTeam} in SURGE (${Math.max(mHome, mAway)}%). DA/min: ${daPerMin.toFixed(2)} 🔥`,
       entry: `Entrare su OVER 0.5 o Back ${mHome > mAway ? homeTeam : awayTeam}. Urgenza massima.`,
       exit: 'Lasciare scorrere fino al gol. Stop solo se momentum si inverte bruscamente.',
       risk: 'Alta.',
@@ -596,10 +591,10 @@ function updateStrategicGuide(data, metrics = {}) {
 
   guide.innerHTML = `
     <div class="bet-badge">BET: ${inst.bet}</div>
-    <div style="color:var(--accent); font-weight:700; margin-bottom:8px; font-size:13px;">­ƒôï ${inst.logic}</div>
-    <div style="margin-bottom:6px;"><span style="color:var(--ok); font-weight:700;">ÔûÂ ENTRATA:</span> ${inst.entry}</div>
-    <div style="margin-bottom:6px;"><span style="color:var(--warn); font-weight:700;">ÔùÇ USCITA:</span> ${inst.exit}</div>
-    <div style="margin-bottom:4px;"><span style="color:var(--muted);">ÔÜí RISCHIO:</span> ${inst.risk}</div>
+    <div style="color:var(--accent); font-weight:700; margin-bottom:8px; font-size:13px;">📋 ${inst.logic}</div>
+    <div style="margin-bottom:6px;"><span style="color:var(--ok); font-weight:700;">🟢 ENTRATA:</span> ${inst.entry}</div>
+    <div style="margin-bottom:6px;"><span style="color:var(--warn); font-weight:700;">🔴 USCITA:</span> ${inst.exit}</div>
+    <div style="margin-bottom:4px;"><span style="color:var(--muted);">🛡️ RISCHIO:</span> ${inst.risk}</div>
   `;
 
   const studio = byId('greenupStudio');
@@ -612,13 +607,15 @@ function updateStrategicGuide(data, metrics = {}) {
 
   const telSection = byId('liveTelegramSection');
   const telBox = byId('liveTelegramBox');
-  if (telSection && telBox) {
+  if (telSection && telBox && data.home) {
     telSection.style.display = 'block';
     telBox.textContent = generateLiveTelegramSignal(data, inst, metrics);
+  } else if (telSection) {
+    telSection.style.display = 'none';
   }
 }
 
-// ÔöÇÔöÇÔöÇ EXCHANGE CALCULATOR ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── EXCHANGE CALCULATOR ─────────────────────────────────────────────────────
 
 function updateExchangeCalc() {
   const b1 = parseFloat(byId('b1')?.value) || 0;
@@ -644,14 +641,14 @@ function updateExchangeCalc() {
   const ev = parseFloat(((impliedProb * backProfit) - ((1 - impliedProb) * stake)).toFixed(2));
 
   // Update UI
-  byId('calcBackProfit').textContent = `Ôé¼${backProfit}`;
-  byId('calcLayLiability').textContent = `Ôé¼${layLiability}`;
-  byId('calcLayStake').textContent = `Ôé¼${layStake}`;
+  byId('calcBackProfit').textContent = `€${backProfit}`;
+  byId('calcLayLiability').textContent = `€${layLiability}`;
+  byId('calcLayStake').textContent = `€${layStake}`;
   byId('calcBreakEven').textContent = breakEven.toFixed(2);
-  byId('calcGreenTarget').textContent = `Ôé¼${greenTarget}`;
-  byId('calcStopLoss').textContent = `-Ôé¼${stopLoss}`;
+  byId('calcGreenTarget').textContent = `€${greenTarget}`;
+  byId('calcStopLoss').textContent = `-€${stopLoss}`;
   byId('calcROI').textContent = `${roi}%`;
-  byId('calcEV').textContent = ev >= 0 ? `+Ôé¼${ev}` : `-Ôé¼${Math.abs(ev)}`;
+  byId('calcEV').textContent = ev >= 0 ? `+€${ev}` : `-€${Math.abs(ev)}`;
 
   // Trading Signal based on momentum + odds
   updateExchangeSignal(b1, lx, backProfit, layLiability, ev);
@@ -679,23 +676,23 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     if (ev > 0 && mHome > 65 && xgGapH > 0.5 && trend !== 'STABLE') {
       signal = 'BUY HOME';
       color = '#2dd4bf';
-      msg = `Ô£à BACK ${lastData.home} ÔÇö Momentum ${mHome}% + XG Gap +${xgGapH.toFixed(2)}. EV positivo (Ôé¼${ev}).`;
+      msg = `✅ BACK ${lastData.home} ÔÇö Momentum ${mHome}% + XG Gap +${xgGapH.toFixed(2)}. EV positivo (€${ev}).`;
     } else if (ev > 0 && mAway > 65 && xgGapA > 0.5 && trend !== 'STABLE') {
       signal = 'BUY AWAY';
       color = '#2dd4bf';
-      msg = `Ô£à BACK ${lastData.away} ÔÇö Momentum ${mAway}% + XG Gap +${xgGapA.toFixed(2)}. EV positivo (Ôé¼${ev}).`;
+      msg = `✅ BACK ${lastData.away} ÔÇö Momentum ${mAway}% + XG Gap +${xgGapA.toFixed(2)}. EV positivo (€${ev}).`;
     } else if (lastData.gh === lastData.ga && totalXG > 1.0 && lastData.minute >= 45) {
       signal = 'LAY DRAW';
       color = '#f59e0b';
-      msg = `ÔÜí LAY X ÔÇö Score bloccato ${lastData.gh}:${lastData.ga} al ${lastData.minute}' con XG totale ${totalXG.toFixed(2)}. Gol atteso.`;
+      msg = `🛡️ LAY X ÔÇö Score bloccato ${lastData.gh}:${lastData.ga} al ${lastData.minute}' con XG totale ${totalXG.toFixed(2)}. Gol atteso.`;
     } else if (ev < -0.2 || (mHome < 35 && mAway < 35)) {
       signal = 'WAIT';
       color = '#94a3b8';
-      msg = 'ÔÅ© Match sterile o EV negativo. Attendere segnale pi├╣ chiaro.';
+      msg = '⏱️ Match sterile o EV negativo. Attendere segnale pi├╣ chiaro.';
     } else {
       signal = 'MONITOR';
       color = '#38bdf8';
-      msg = `­ƒæü Match sotto osservazione. Trend: ${trend}. Attendi conferma momentum prima di entrare.`;
+      msg = `👁️ Match sotto osservazione. Trend: ${trend}. Attendi conferma momentum prima di entrare.`;
     }
   }
 
@@ -709,7 +706,7 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
   reason.textContent = msg;
 }
 
-// ÔöÇÔöÇÔöÇ MASTER ANALYSIS TRIGGER ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── MASTER ANALYSIS TRIGGER ──────────────────────────────────────────────────
 
 function runAnalysis() {
   const raw = byId('scanner').value.trim();
@@ -733,12 +730,12 @@ function runAnalysis() {
 
   if (data.home) {
     const oddsInfo = data.odds ? ` | Back1: ${data.odds.back1} / LayX: ${data.odds.layX}` : '';
-    byId('signal').textContent = `ÔÜí ${data.home} ${data.gh}-${data.ga} ${data.away} | Min: ${data.minute}' | XG: ${data.xgh?.toFixed(2)}-${data.xga?.toFixed(2)} | ${data.proxyXG ? 'PROXY XG' : 'XG LIVE'}${oddsInfo}`;
+    byId('signal').textContent = `🛡️ ${data.home} ${data.gh}-${data.ga} ${data.away} | Min: ${data.minute}' | XG: ${data.xgh?.toFixed(2)}-${data.xga?.toFixed(2)} | ${data.proxyXG ? 'PROXY XG' : 'XG LIVE'}${oddsInfo}`;
     byId('signal').classList.remove('signal-empty');
   }
 }
 
-// ÔöÇÔöÇÔöÇ AI ENGINE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── AI ENGINE ───────────────────────────────────────────────────────────────
 
 async function runAI() {
   if (engineBusy || !lastData) return;
@@ -757,14 +754,14 @@ async function runAI() {
     const result = await res.json();
     byId('signal').textContent = result.analysis || 'Analisi completata.';
   } catch (err) {
-    byId('signal').textContent = `ÔÜá´©Å ${err.message} ÔÇö Usa analisi euristica attiva.`;
+    byId('signal').textContent = `⚠️ ${err.message} ÔÇö Usa analisi euristica attiva.`;
   } finally {
     engineBusy = false;
     btn.textContent = 'Analizza con AI Avanzata';
   }
 }
 
-// ÔöÇÔöÇÔöÇ INIT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── INIT ─────────────────────────────────────────────────────────────────────
 
 function renderPMStats(stats, name) {
     if (!stats) return `<div style="color:var(--muted);">Dati non disponibili per ${name}</div>`;
@@ -869,7 +866,7 @@ function init() {
 
 init();
 
-// ÔöÇÔöÇÔöÇ TAB SWITCHER ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── TAB SWITCHER ─────────────────────────────────────────────────────────────
 
 window.switchTab = function(tab) {
   const live = byId('tabLiveContent');
@@ -895,7 +892,7 @@ window.switchTab = function(tab) {
   }
 };
 
-// ÔöÇÔöÇÔöÇ PRE-MATCH SCOUT ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── PRE-MATCH SCOUT ──────────────────────────────────────────────────────────
 
 const RATING_COLOR = { BET: '#00e5a0', VALUE: '#f0c040', WATCH: '#60aaff', SKIP: '#ff4d6d' };
 const CONF_COLOR   = { Alta: '#00e5a0', Media: '#f0c040', Bassa: '#999' };
@@ -918,15 +915,15 @@ window.runPreMatch = async function() {
   const loadTxt = byId('pmLoadingText');
   loadSec.style.display = '';
   
-  const setLoad = (txt) => { loadTxt.textContent = `­ƒÜÇ ${txt}`; };
+  const setLoad = (txt) => { loadTxt.textContent = `🚀 ${txt}`; };
   setLoad(`Inizializzazione caricamento per ${home} vs ${away}...`);
 
   const btn = byId('scoutBtn');
   btn.disabled = true;
-  btn.textContent = 'ÔÅ│ Analisi...';
+  btn.textContent = '⏳ Analisi...';
 
   try {
-    setLoad('­ƒôí Caricamento dati lega (Sbancobet)...');
+    setLoad('📡 Caricamento dati lega (Sbancobet)...');
     
     const res = await fetch('/api/prematch', {
       method: 'POST',
@@ -939,7 +936,7 @@ window.runPreMatch = async function() {
         throw new Error(errData.error || `Errore Server ${res.status}`);
     }
     
-    setLoad('­ƒºá Elaborazione dati con Gemini AI...');
+    setLoad('🧠 Elaborazione dati con Gemini AI...');
     const data = await res.json();
 
     loadSec.style.display = 'none';
@@ -970,9 +967,9 @@ window.runPreMatch = async function() {
       <div style="font-size:14px; line-height:1.8; color:var(--accent);">
         ${analysis.telegram_signal || 'Segnale non disponibile'}
       </div>
-      <button onclick="navigator.clipboard.writeText('${(analysis.telegram_signal||'').replace(/'/g,"\\'")}').then(()=>this.textContent='Ô£à Copiato!')"
+      <button onclick="navigator.clipboard.writeText('${(analysis.telegram_signal||'').replace(/'/g,"\\'")}').then(()=>this.textContent='✅ Copiato!')"
         style="margin-top:10px; padding:6px 18px; border-radius:20px; border:1px solid var(--accent); background:transparent; color:var(--accent); cursor:pointer; font-size:12px;">
-        ­ƒôï Copia per Telegram
+        📋 Copia per Telegram
       </button>`;
     byId('pmTelegramSection').style.display = '';
 
@@ -983,7 +980,7 @@ window.runPreMatch = async function() {
     byId('pmSummarySection').style.display = '';
     byId('pmSummaryBox').innerHTML = `
         <div style="color:var(--danger); border:1px solid var(--danger); padding:15px; border-radius:8px; background:rgba(244,63,94,0.05);">
-            <div style="font-weight:bold; margin-bottom:5px;">ÔØî ERRORE DI ANALISI</div>
+            <div style="font-weight:bold; margin-bottom:5px;">❌ ERRORE DI ANALISI</div>
             <div style="font-size:12px;">${err.message}</div>
             <div style="margin-top:10px; font-size:11px; color:var(--muted);">
                 Suggerimento: Se l'errore persiste, controlla se i nomi delle squadre sono corretti su Sbancobet (Serie A).
@@ -1003,21 +1000,21 @@ function renderMarketCards(markets) {
     return `
       <div class="pm-market-card ${isTop ? 'pm-market-top' : ''}" style="border-color:${col}44;">
         <div class="pm-market-header">
-          <span class="pm-market-name">${isTop ? 'Ô¡É ' : ''}${m.name}</span>
+          <span class="pm-market-name">${isTop ? '⭐ ' : ''}${m.name}</span>
           <span class="pm-market-rating" style="background:${col}22; color:${col}; border-color:${col};">${m.rating}</span>
         </div>
         <div class="pm-market-pick">${m.pick}</div>
         <div class="pm-market-label" style="color:var(--muted); font-size:12px;">${m.label}</div>
         <div class="pm-market-odds">
           Quota target: <strong style="color:${col};">${m.quota_target}</strong>
-          <span class="pm-conf" style="color:${confCol};">ÔùÅ ${m.confidence}</span>
+          <span class="pm-conf" style="color:${confCol};">🔹 ${m.confidence}</span>
         </div>
         <div class="pm-market-reasoning">${m.reasoning}</div>
       </div>`;
   }).join('');
 }
 
-// ÔöÇÔöÇÔöÇ TRACKER LOGIC ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+// ─── TRACKER LOGIC ────────────────────────────────────────────────────────────
 
 window.saveTrackerPick = async function(label, pick, oddRef) {
   if (!lastData || !lastData.home) return alert('Dati match mancanti!');
@@ -1027,7 +1024,7 @@ window.saveTrackerPick = async function(label, pick, oddRef) {
   let defOdd = document.getElementById('lx')?.value || document.getElementById('b1')?.value || oddRef.replace('+', '') || '2.0';
   let defStake = document.getElementById('stake')?.value || '10';
   
-  const input = prompt(`Salvataggio Exchange: Inserisci QUOTA e STAKE (es. "3.50 20").\nDefault: ${defOdd} quota, Ôé¼${defStake} stake.`, `${defOdd} ${defStake}`);
+  const input = prompt(`Salvataggio Exchange: Inserisci QUOTA e STAKE (es. "3.50 20").\nDefault: ${defOdd} quota, €${defStake} stake.`, `${defOdd} ${defStake}`);
   if (input === null) return; // Cancelled
   
   const parts = input.trim().split(/\s+/);
@@ -1041,7 +1038,7 @@ window.saveTrackerPick = async function(label, pick, oddRef) {
       body: JSON.stringify({ match, label, pick, odd, stake })
     });
     if (res.ok) {
-      alert(`Ô£à Trade salvato! (Quota: ${odd}, Stake: Ôé¼${stake})`);
+      alert(`✅ Trade salvato! (Quota: ${odd}, Stake: €${stake})`);
       loadTracker();
     }
   } catch (e) {
@@ -1114,7 +1111,7 @@ window.loadTracker = async function() {
     
     byId('trTotal').textContent = history.length;
     byId('trWinRate').textContent = `${winRate}%`;
-    byId('trPnL').textContent = `Ôé¼${totalPnl.toFixed(2)}`;
+    byId('trPnL').textContent = `€${totalPnl.toFixed(2)}`;
     byId('trPnL').className = `ex-metric-val ${totalPnl >= 0 ? 'ok' : 'danger'}`;
     
     const recent = history.filter(h => h.status !== 'PENDING' && h.status !== 'VOID').slice(0, 10);
@@ -1140,13 +1137,13 @@ window.loadTracker = async function() {
       
       const actions = isPending ? `
         <button onclick="updateTrackerStatus('${h.id}', 'CASHOUT')" style="background:var(--accent); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; color:#18181b;" title="Cashout manuale">C-OUT</button>
-        <button onclick="updateTrackerStatus('${h.id}', 'FULL_WIN')" style="background:var(--ok); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;" title="Full Win">Ô£à</button>
-        <button onclick="updateTrackerStatus('${h.id}', 'FULL_LOSS')" style="background:var(--danger); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;" title="Full Loss">ÔØî</button>
-      ` : `<span style="color:var(--muted); font-size:11px;">PnL: Ôé¼${(h.pnl||0).toFixed(2)}</span>`;
+        <button onclick="updateTrackerStatus('${h.id}', 'FULL_WIN')" style="background:var(--ok); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;" title="Full Win">✅</button>
+        <button onclick="updateTrackerStatus('${h.id}', 'FULL_LOSS')" style="background:var(--danger); border:none; padding:4px 8px; border-radius:4px; font-weight:bold; cursor:pointer; margin-left:4px;" title="Full Loss">❌</button>
+      ` : `<span style="color:var(--muted); font-size:11px;">PnL: €${(h.pnl||0).toFixed(2)}</span>`;
       
       const badgeColor = isWinOrGreen ? 'var(--ok)' : isLossOrRed ? 'var(--danger)' : 'var(--muted)';
       const statusBadge = `<span style="padding:2px 8px; border-radius:12px; background:${badgeColor}22; color:${badgeColor}; font-weight:bold; font-size:11px;">${h.status}</span>`;
-      const stakeStr = h.stake ? `Stk: Ôé¼${h.stake}` : '';
+      const stakeStr = h.stake ? `Stk: €${h.stake}` : '';
 
       return `
       <tr style="border-bottom:1px solid rgba(255,255,255,0.05); ${rowStyle}">
@@ -1165,6 +1162,5 @@ window.loadTracker = async function() {
     console.error('Load tracker failed', e);
   }
 };
-
 
 

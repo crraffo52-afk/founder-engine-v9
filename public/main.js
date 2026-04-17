@@ -355,6 +355,36 @@ function updateDynamicStrategies(data, momentum) {
 
 
 // ÔöÇÔöÇÔöÇ BOOK PREVIEW ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
+function generateBookTelegramSignal(data, dynamicBets, corTotal) {
+  const hTeam = data.home || 'Casa';
+  const aTeam = data.away || 'Ospite';
+  const score = `${data.gh||0}-${data.ga||0}`;
+  const minute = data.minute ? `${data.minute}'` : 'HT';
+  const xgStr = `${(data.xgh||0).toFixed(2)}-${(data.xga||0).toFixed(2)}`;
+  const daTotalMin = (data.minute || 1) > 0 ? ((data.stats.da?.[0] || 0) + (data.stats.da?.[1] || 0)) / (data.minute || 1) : 0;
+  
+  let signalStr = `🎯 PREVIEW LIVE MARKET 🎯
+⏳ ${hTeam} ${score} ${aTeam} | Min: ${minute}
+📋 XG: ${xgStr} | DA/min: ${daTotalMin.toFixed(2)}
+
+🔍 PICK SUGGERITI:
+`;
+
+  dynamicBets.forEach((bet, idx) => {
+    signalStr += `${idx + 1}️⃣ ${bet.label}
+👉 ${bet.pick} (Quota ref: ${bet.odd})
+ℹ️ ${bet.reason}\n\n`;
+  });
+
+  if (dynamicBets.length === 0) {
+    signalStr += `Attesa. I dati Live non sono ancora stabilizzati per generare picks affidabili.\n\n`;
+  }
+
+  signalStr += `---
+THE FOUNDER EXCHANGE | 70-WIN EDITION`;
+
+  return signalStr.trim();
+}
 
 function updateBookPreview(data) {
   const xgDiff = (data.xgh || 0) - (data.xga || 0);
@@ -422,6 +452,15 @@ function updateBookPreview(data) {
   `).join('');
 
   byId('bookMeta').textContent = `Modulo: ADVANCED DYNAMIC MARKETS | EV Engine | XG: ${(data.xgh||0).toFixed(2)} - ${(data.xga||0).toFixed(2)}`;
+
+  const telSection = byId('bookTelegramSection');
+  const telBox = byId('bookTelegramBox');
+  if (telSection && telBox && data.home) {
+    telSection.style.display = 'block';
+    telBox.textContent = generateBookTelegramSignal(data, dynamicBets, corTotal);
+  } else if (telSection) {
+    telSection.style.display = 'none';
+  }
 }
 
 // ÔöÇÔöÇÔöÇ STRATEGIC GUIDE ÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇÔöÇ
@@ -812,6 +851,17 @@ function init() {
       navigator.clipboard.writeText(txt).then(() => {
         copyBtn.textContent = '✅ Copiato!';
         setTimeout(() => copyBtn.textContent = '📋 Copia per Telegram', 2000);
+      });
+    });
+  }
+
+  const copyBookBtn = byId('copyBookTelegramBtn');
+  if (copyBookBtn) {
+    copyBookBtn.addEventListener('click', () => {
+      const txt = byId('bookTelegramBox')?.textContent || '';
+      navigator.clipboard.writeText(txt).then(() => {
+        copyBookBtn.textContent = '✅ Copiato!';
+        setTimeout(() => copyBookBtn.textContent = '📋 Copia Segnale Book', 2000);
       });
     });
   }

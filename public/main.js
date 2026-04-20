@@ -449,6 +449,34 @@ function updateBookPreview(data) {
     dynamicBets.push({ label: 'PROSSIMO GOL', pick: `Segna ${data.away || 'OSPITE'}`, odd: '2.10+', confidence: 'Media', reason: `Avvolgimento e DA/min nettamente a favore di ${data.away || 'Away'}.` });
   }
 
+  // 1. Draw No Bet (Rimborso in caso di pareggio)
+  if (min > 45 && data.gh === data.ga && totalGoals >= 0) {
+    if (xgDiff > 0.5 && get('da', 0)/min > 0.4) {
+      dynamicBets.push({ label: 'DRAW NO BET (DNB)', pick: `1 DNB (${data.home || 'CASA'})`, odd: '1.50+', confidence: 'Media', reason: 'Vantaggio XG e predominio territoriale netto, ma match in bilico.' });
+    } else if (xgDiff < -0.5 && get('da', 1)/min > 0.4) {
+      dynamicBets.push({ label: 'DRAW NO BET (DNB)', pick: `2 DNB (${data.away || 'OSPITE'})`, odd: '1.50+', confidence: 'Media', reason: 'Vantaggio XG e predominio territoriale netto, ma match in bilico.' });
+    }
+  }
+
+  // 2. Tempo con più Gol
+  if (min > 30 && min <= 45 && totalGoals === 0 && daTotal / min > 1.0) {
+    dynamicBets.push({ label: 'TEMPO CON PIÙ GOL', pick: '2° Tempo', odd: '2.00+', confidence: 'Alta', reason: 'Pressione esplosiva nel 1T ma difese momentaneamente ermetiche. Esplosione gol attesa nel 2T.' });
+  }
+
+  // 3. Risultato Esatto Cluster
+  if (min > 60 && Math.abs(xgDiff) > 1.2 && data.gh !== data.ga) {
+    if (data.gh > data.ga) {
+      dynamicBets.push({ label: 'RISULTATO ESATTO MULTIPO', pick: `${data.gh+1}-${data.ga} / ${data.gh+2}-${data.ga}`, odd: '2.50+', confidence: 'Media', reason: 'Dominio assoluto. Alta probabilità di dilagare visti gli Expected Goals non convertiti.' });
+    } else {
+      dynamicBets.push({ label: 'RISULTATO ESATTO MULTIPO', pick: `${data.gh}-${data.ga+1} / ${data.gh}-${data.ga+2}`, odd: '2.50+', confidence: 'Media', reason: 'Dominio assoluto. Alta probabilità di dilagare visti gli Expected Goals non convertiti.' });
+    }
+  }
+
+  // 4. Fasce di Minuto
+  if (min >= 68 && min <= 82 && daTotal / min > 1.1) {
+    dynamicBets.push({ label: 'FASCE DI MINUTO (GOL LIVE)', pick: 'Gol dal 76\':01 a Fine Partita (SÌ)', odd: '1.80+', confidence: 'Alta', reason: 'Frenesia agonistica altissima, la partita è in rottura tattica prolungata.' });
+  }
+
   if (dynamicBets.length < 4) {
     let baseCombo = xgDiff >= 0 ? '1X + MultiGol 1-4' : 'X2 + MultiGol 1-4';
     if (min < 70) dynamicBets.push({ label: 'COMBO CONSERVATIVA', pick: baseCombo, odd: '1.40+', confidence: 'Alta', reason: 'Copertura statistica basata su inerzia prevalente e trend storico.' });
@@ -456,7 +484,7 @@ function updateBookPreview(data) {
 
   if (min < 10) dynamicBets = [{ label: 'ATTESA', pick: 'Attendere 15 min', odd: '-', confidence: 'Bassa', reason: 'I dati Live non sono ancora stabilizzati per generare picks affidabili.' }];
 
-  dynamicBets = dynamicBets.slice(0, 4);
+  dynamicBets = dynamicBets.slice(0, 6);
 
   byId('bookGrid').innerHTML = dynamicBets.map(b => `
     <div class="book-item">

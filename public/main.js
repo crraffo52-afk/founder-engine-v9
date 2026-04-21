@@ -574,7 +574,7 @@ function updateStrategicGuide(data, metrics = {}) {
         <div>🎯 SOT-Eff A: ${(sotEffA*100).toFixed(0)}%</div>
       </div>
       <div style="margin-top:10px; color:var(--warn); font-size:11px;">
-        ${daPerMin > 0.6 ? '⚠️ Pressione ALTA ÔÇö monitorare per segnale LTD o BTL.' : 'Attendi che il ritmo di gioco superi la soglia operativa.'}
+        ${daPerMin > 0.6 ? '⚠️ Pressione ALTA — monitorare per segnale LTD o BTL.' : 'Attendi che il ritmo di gioco superi la soglia operativa.'}
       </div>`;
     return;
   }
@@ -582,7 +582,8 @@ function updateStrategicGuide(data, metrics = {}) {
   const instructions = {
     'strat-ltd': {
       bet: 'LAY DRAW (BANCA X)',
-      logic: `Score bloccato ${data.gh}:${data.ga} al ${min}'. ${daPerMin.toFixed(2)} DA/min ÔÇö pressione ${daPerMin > 0.6 ? 'ALTA' : 'MEDIA'}. XG ${totalXG.toFixed(2)} suggerisce gol imminente.`,
+      hype: '🔥 LA X TREMA! L\'algoritmo rileva un\'urgenza offensiva che il pareggio non può reggere.',
+      logic: `Score bloccato ${data.gh}:${data.ga} al ${min}'. ${daPerMin.toFixed(2)} DA/min — pressione ${daPerMin > 0.6 ? 'ALTA' : 'MEDIA'}. XG ${totalXG.toFixed(2)} suggerisce gol imminente.`,
       entry: `Entrare con LAY X se quota < 3.50. Pressione floor: ${daPerMin.toFixed(2)} DA/min ✔️`,
       exit: `✅ Cash-out al primo gol (Green-up). ⚠️ Uscire al minuto 75-80 se score rimane ${data.gh}:${data.ga} (Rule of 70).`,
       risk: 'Media-Bassa.',
@@ -590,6 +591,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-btl': {
       bet: `BACK ${xgGapH > xgGapA ? homeTeam : awayTeam}`,
+      hype: '🚀 MOMENTUM IN DECOLLO! Una squadra ha preso il controllo totale del campo.',
       logic: `${xgGapH > xgGapA ? homeTeam : awayTeam} domina. DA/min: ${(xgGapH > xgGapA ? daRateH : daRateA).toFixed(2)}/min. XG Gap: +${Math.max(xgGapH, xgGapA).toFixed(2)}.`,
       entry: `Punta ${xgGapH > xgGapA ? homeTeam : awayTeam} se quota > 1.70. Momentum ${Math.max(mHome, mAway)}%.`,
       exit: 'Green-up non appena pareggia o passa davanti. Stop se avversario segna.',
@@ -598,6 +600,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-scalp': {
       bet: 'SCALP UNDER 2.5 / UNDER 1.5',
+      hype: '🧊 GHIACCIO NELLE VENE. Il match è in stallo totale, il tempo è il nostro miglior alleato.',
       logic: `Match sterile. DA/min: ${daPerMin.toFixed(2)} (sotto soglia 0.40). XG: ${totalXG.toFixed(2)}. Nessuna pressione reale.`,
       entry: 'Scalp UNDER per 5-10 minuti. Max 15 tick di esposizione.',
       exit: 'Uscire al primo DA significativo o se DA/min supera 0.50.',
@@ -606,6 +609,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-power': {
       bet: `OVER 0.5 / BACK ${mHome > mAway ? homeTeam : awayTeam}`,
+      hype: '⚡ POWER PLAY ATTIVO! Pressione insostenibile, il gol è nell\'aria dei minuti finali.',
       logic: `Fase finale al ${min}'. ${mHome > mAway ? homeTeam : awayTeam} in SURGE (${Math.max(mHome, mAway)}%). DA/min: ${daPerMin.toFixed(2)} 🔥`,
       entry: `Entrare su OVER 0.5 o Back ${mHome > mAway ? homeTeam : awayTeam}. Urgenza massima.`,
       exit: 'Lasciare scorrere fino al gol. Stop solo se momentum si inverte bruscamente.',
@@ -614,6 +618,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-layfav': {
       bet: `LAY ${data.gh > data.ga ? homeTeam : awayTeam} (favorito in crisi)`,
+      hype: '📉 FAVORITO AL COLLASSO. La quota mente, i dati mostrano una crisi di produzione reale.',
       logic: `${data.gh > data.ga ? homeTeam : awayTeam} in vantaggio ma senza produzione. DA/min avversario: ${(data.gh > data.ga ? daRateA : daRateH).toFixed(2)}/min.`,
       entry: 'Bancare il favorito se quota < 1.70 e non produce DA.',
       exit: 'Uscire se favorito segna o se il VA supera 3 SOT.',
@@ -622,7 +627,8 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-scattergun': {
       bet: 'DUTCHING 1X2 + OVER',
-      logic: `Match ad alta intensit├á. DA/min: ${daPerMin.toFixed(2)}. XG: ${totalXG.toFixed(2)}. Equilibrio da sfruttare.`,
+      hype: '🔫 MODALITÀ SCATTERGUN! Turbolenza rilevata, copriamo il ventaglio dei risultati.',
+      logic: `Match ad alta intensità. DA/min: ${daPerMin.toFixed(2)}. XG: ${totalXG.toFixed(2)}. Equilibrio da sfruttare.`,
       entry: 'Coprire 1X2 con stake proporzionale alle quote. Aggiungere OVER 1.5.',
       exit: 'Uscire al secondo gol con profit protetto.',
       risk: 'Media.',
@@ -630,6 +636,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-fortino': {
       bet: `LAY ${data.gh > data.ga ? homeTeam : awayTeam} (Leader Sotto Assedio)`,
+      hype: '🏰 ASSEDIO AL FORTINO! Il leader sta crollando sotto i colpi del volume offensivo.',
       logic: `Minuto ${min}'. ${data.gh > data.ga ? homeTeam : awayTeam} vince ma subisce una pressione brutale: DA/min avversario a ${(data.gh > data.ga ? daRateA : daRateH).toFixed(2)}.`,
       entry: `Banca se quota < 1.30. Sfruttiamo il rapporto Rischio/Rendimento (EV estremo).`,
       exit: 'Green-Up al pareggio. Uscita totale al minuto 88 se il punteggio non cambia.',
@@ -638,6 +645,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-deadzone': {
       bet: `BACK UNDER ${data.gh + data.ga + 1.5} / SCALP UNDER`,
+      hype: '💀 DEAD ZONE RILEVATA. Nessuna energia in campo, approfittiamo dell\'inerzia.',
       logic: `Nessuna squadra sta accelerando. DA complessivo: ${daPerMin.toFixed(2)}. XG totali anemici (${totalXG.toFixed(2)}).`,
       entry: 'Punta sull\'Under corrente. Partita tattica e lenta.',
       exit: 'Mungere il Time Decay per 5-8 minuti. Uscire se DA/min supera 0.50.',
@@ -646,6 +654,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-fade': {
       bet: `LAY ${data.gh > data.ga ? homeTeam : awayTeam} (Fade The Luck)`,
+      hype: '🎭 FANTASMI IN VANTAGGIO. La fortuna sta per finire, i numeri chiamano il riequilibrio.',
       logic: `Vantaggio immeritato. XG Gap reale: +${Math.max(xgGapH, xgGapA).toFixed(2)} per chi sta perdendo.`,
       entry: 'Bancare chi ha segnato per puro caso (quota in compressione ingiustificata).',
       exit: 'Uscire al pareggio o se la squadra in svantaggio smette di produrre (DA crolla).',
@@ -654,6 +663,7 @@ function updateStrategicGuide(data, metrics = {}) {
     },
     'strat-ht': {
       bet: `DUTCHING OVER 0.5 HT + OVER 1.5 FT`,
+      hype: '⚡ HT BURST! Esplosione di pressione prima del riposo, cerchiamo il varco.',
       logic: `Minuto ${min}'. Fase Box-to-Box intensissima (DA/min cumulativo ${daPerMin.toFixed(2)}). Gap momentum nullo. Entrambe vogliono segnare prima del riposo.`,
       entry: 'Coprire mercato Goal HT e Over FT (1.5).',
       exit: 'Uscita massiva al primo gol HT. Perdere stake su mercato HT se non segnano entro il 45\'.',
@@ -672,6 +682,9 @@ function updateStrategicGuide(data, metrics = {}) {
   };
 
   guide.innerHTML = `
+    <div style="background:rgba(45,212,191,0.1); border:1px solid var(--ok); padding:10px; border-radius:4px; margin-bottom:12px; color:var(--ok); font-weight:bold; font-size:14px; text-align:center;">
+      ${inst.hype}
+    </div>
     <div class="bet-badge">BET: ${inst.bet}</div>
     <div style="color:var(--accent); font-weight:700; margin-bottom:8px; font-size:13px;">📋 ${inst.logic}</div>
     <div style="margin-bottom:6px;"><span style="color:var(--ok); font-weight:700;">🟢 ENTRATA:</span> ${inst.entry}</div>
@@ -837,7 +850,7 @@ async function runAI() {
     const result = await res.json();
     byId('signal').textContent = result.analysis || 'Analisi completata.';
   } catch (err) {
-    byId('signal').textContent = `⚠️ ${err.message} ÔÇö Usa analisi euristica attiva.`;
+    byId('signal').textContent = `⚠️ ${err.message} — Usa analisi euristica attiva.`;
   } finally {
     engineBusy = false;
     btn.textContent = 'Analizza con AI Avanzata';

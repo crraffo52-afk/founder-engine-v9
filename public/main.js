@@ -493,7 +493,6 @@ function updateBookPreview(data) {
       <div class="book-pick">${b.pick}</div>
       <div class="book-odd" style="color:var(--accent);">Quota ref: ${b.odd}</div>
       <div class="book-note">${b.reason}</div>
-      <button onclick="saveTrackerPick('${b.label}', '${b.pick}', '${b.odd}')" style="margin-top:8px; width:100%; padding:6px; font-size:11px; cursor:pointer; background:var(--bg-card); color:var(--accent); border:1px solid var(--accent); border-radius:4px;">💥 Salva Pick</button>
     </div>
   `).join('');
 
@@ -678,6 +677,7 @@ function updateStrategicGuide(data, metrics = {}) {
     <div style="margin-bottom:6px;"><span style="color:var(--ok); font-weight:700;">🟢 ENTRATA:</span> ${inst.entry}</div>
     <div style="margin-bottom:6px;"><span style="color:var(--warn); font-weight:700;">🔴 USCITA:</span> ${inst.exit}</div>
     <div style="margin-bottom:4px;"><span style="color:var(--muted);">🛡️ RISCHIO:</span> ${inst.risk}</div>
+    ${activeS ? `<button onclick="saveTrackerPick('${activeS.id}', '${inst.bet.replace(/'/g, "\\'")}', '2.0')" style="margin-top:12px; width:100%; padding:8px; font-size:13px; font-weight:bold; cursor:pointer; background:var(--banka); color:#fff; border:none; border-radius:4px;">💥 SALVA NEL TRACKER (EXCHANGE)</button>` : ''}
   `;
 
   const studio = byId('greenupStudio');
@@ -1178,13 +1178,31 @@ window.copyOutcomeSignal = function(btn, match, label, pick, odd, status, pnl) {
   let outcomeText = isCashout ? `Cashout (PnL: €${pnlNum.toFixed(2)})` : `${status} (PnL: €${pnlNum.toFixed(2)})`;
   if (pnlNum > 0 && isCashout) outcomeText = `+${outcomeText}`; // visual aesthetic
   
+  const hypeMessages = {
+    'strat-ltd': '🎯 Bancata del pareggio chiusa. Un\'altra X affossata dal volume!',
+    'strat-btl': '🎯 Back-To-Lay completato. Cavalcato il momentum, protetto il capitale!',
+    'strat-scalp': '🎯 Scalp spietato! Aggressività premiata all\'istante.',
+    'strat-power': '🎯 Mismatch di energia sfruttato. Nessuno scampo nel finale: Power Play!',
+    'strat-layfav': '🎯 Cacciatori di quote basse. Favorito in crisi decapitato!',
+    'strat-scattergun': '🎯 Fucilata incassata! Il Dutching non perdona l\'instabilità. Dati dominati.',
+    'strat-fortino': '🎯 Decapitazione matematica. Incassiamo lo sfinimento del Leader a quota ingiusta!',
+    'strat-deadzone': '🎯 Munto il Time Decay. Paga il non-gioco e il collasso tattico!',
+    'strat-fade': '🎯 Karma quantitativo ristabilito. Bookmaker battuto sul contromercato!',
+    'strat-ht': '🎯 Doppia spallata prima dell\'intervallo incassata. Box-to-Box estremo!'
+  };
+
+  let hypeFooter = '';
+  if (isWin && hypeMessages[label]) {
+    hypeFooter = `\n${hypeMessages[label]}\n`;
+  }
+
   const msg = `${header}
 ⚽ ${match}
-📋 Mercato: ${label}
+📋 Mercato: ${label.replace('strat-', '').toUpperCase()}
 👉 Pick: ${pick} (Quota ref: ${odd})
 
 💰 ESITO: ${outcomeText}
-
+${hypeFooter}
 ---
 THE FOUNDER EXCHANGE | 70-WIN EDITION`;
   
@@ -1259,7 +1277,7 @@ window.loadTracker = async function() {
       <tr style="border-bottom:1px solid rgba(255,255,255,0.05); ${rowStyle}">
         <td style="padding:10px; color:var(--muted);">${dateStr}</td>
         <td style="padding:10px; font-weight:bold;">${h.match}</td>
-        <td style="padding:10px;">${h.label}</td>
+        <td style="padding:10px;">${(h.label || '').replace('strat-', '').toUpperCase()}</td>
         <td style="padding:10px; color:var(--accent);">${h.pick}</td>
         <td style="padding:10px;">Q: ${h.odd} <br><small style="color:var(--muted)">${stakeStr}</small></td>
         <td style="padding:10px;">${statusBadge}</td>

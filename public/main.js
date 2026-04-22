@@ -23,14 +23,18 @@ function parseRawMatchText(raw) {
   else result.provider = 'Auto-Detect';
 
   // Teams
-  const teamsMatch = text.match(/([A-Za-z├Ç-├┐' .()-]+)\s+vs\s+([A-Za-z├Ç-├┐' .()-]+)/i);
+  const teamsMatch = text.match(/([A-Za-zÀ-ÿ' .()-]+)\s+vs\s+([A-Za-zÀ-ÿ' .()-]+)/i);
   if (teamsMatch) {
     result.home = teamsMatch[1].trim();
     result.away = teamsMatch[2].trim();
   }
 
   // Clean string to remove half-time scores like (0:0) or (1-0) to avoid false score extraction
-  const cleanScoreText = text.replace(/\(\s*\d{1,2}\s*[:\-]\s*\d{1,2}\s*\)/g, '');
+  // ALSO remove lines likely containing other stats that look like scores (Corners, etc.)
+  const cleanScoreText = lines.filter(l => {
+    const low = l.toLowerCase();
+    return !low.includes('corner') && !low.includes('angoli') && !low.includes('tiri') && !low.includes('shots');
+  }).join('\n').replace(/\(\s*\d{1,2}\s*[:\-]\s*\d{1,2}\s*\)/g, '');
 
   // Score: look for single-digit:single-digit pattern
   const scoreMatches = Array.from(cleanScoreText.matchAll(/\b(\d{1,2})\s*[:\-]\s*(\d{1,2})\b/g));
@@ -41,7 +45,7 @@ function parseRawMatchText(raw) {
     if (s1 <= 15 && s2 <= 15) {
       // Prevent matching times like 10:30 or 09:00
       if (match[0].includes(':') && (match[1].startsWith('0') && match[1].length === 2 && s1 > 0)) continue;
-      if (match[0].includes(':') && match[2].length === 2 && s2 > 10) continue; // Unlikely to be score 1:45
+      if (match[0].includes(':') && match[2].length === 2 && s2 > 10) continue; 
       
       result.gh = s1;
       result.ga = s2;
@@ -776,15 +780,15 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     } else if (ev > 0 && mAway > 65 && xgGapA > 0.5 && trend !== 'STABLE') {
       signal = 'BUY AWAY';
       color = '#2dd4bf';
-      msg = `✅ BACK ${lastData.away} ÔÇö Momentum ${mAway}% + XG Gap +${xgGapA.toFixed(2)}. EV positivo (€${ev}).`;
+      msg = `✅ BACK ${lastData.away} — Momentum ${mAway}% + XG Gap +${xgGapA.toFixed(2)}. EV positivo (€${ev}).`;
     } else if (lastData.gh === lastData.ga && totalXG > 1.0 && lastData.minute >= 45) {
       signal = 'LAY DRAW';
       color = '#f59e0b';
-      msg = `🛡️ LAY X ÔÇö Score bloccato ${lastData.gh}:${lastData.ga} al ${lastData.minute}' con XG totale ${totalXG.toFixed(2)}. Gol atteso.`;
+      msg = `🟡 LAY X — Score bloccato ${lastData.gh}:${lastData.ga} al ${lastData.minute}' con XG totale ${totalXG.toFixed(2)}. Gol atteso.`;
     } else if (ev < -0.2 || (mHome < 35 && mAway < 35)) {
       signal = 'WAIT';
       color = '#94a3b8';
-      msg = '⏱️ Match sterile o EV negativo. Attendere segnale pi├╣ chiaro.';
+      msg = '⏱️ Match sterile o EV negativo. Attendere segnale più chiaro.';
     } else {
       signal = 'MONITOR';
       color = '#38bdf8';

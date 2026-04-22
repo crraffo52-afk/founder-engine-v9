@@ -128,7 +128,7 @@ function parseRawMatchText(raw) {
   lines.forEach((line, i) => {
     statDefs.forEach(def => {
       if (def.keys.some(k => line.toLowerCase() === k.toLowerCase() || line.toLowerCase().includes(k.toLowerCase()))) {
-        if (line.includes('(1T)') || line.includes('1° Tempo')) return;
+        if (line.includes('(1T)') || line.includes('1\u00B0 Tempo')) return;
         const raw1 = lines[i + 1]?.replace('%', '').replace(',', '.').trim();
         const raw2 = lines[i + 2]?.replace('%', '').replace(',', '.').trim();
         const v1 = parseFloat(raw1);
@@ -174,7 +174,7 @@ function parseRawMatchText(raw) {
 function displayParsedStats(data) {
   const el = byId('parsedDisplay');
   const s = data.stats;
-  const get = (k, i, sfx = '') => s[k] ? `${s[k][i]}${sfx}` : 'ÔÇö';
+  const get = (k, i, sfx = '') => s[k] ? `${s[k][i]}${sfx}` : '\u2014';
 
   if (!data.home) {
     el.innerHTML = '<div class="parsed-empty">Dati non rilevati. Controlla il formato del testo incollato.</div>';
@@ -196,9 +196,9 @@ function displayParsedStats(data) {
     </div>
     <div class="stat-row">
       <span class="stat-label">⌚ MINUTO</span>
-      <span class="stat-home">—</span>
+      <span class="stat-home">\u2014</span>
       <span class="stat-val">${data.minute}'</span>
-      <span class="stat-away">—</span>
+      <span class="stat-away">\u2014</span>
     </div>
     <div class="stat-row highlight">
       <span class="stat-label">📈 XG ${xgMode}</span>
@@ -231,7 +231,7 @@ function displayParsedStats(data) {
       <span class="stat-away">${get('cor',1)}</span>
     </div>
     <div class="stat-row">
-      <span class="stat-label">⚖️ Possesso</span>
+      <span class="stat-label">⚖\uFE0F Possesso</span>
       <span class="stat-home">${get('pos',0,'%')}</span>
       <span class="stat-val">POS</span>
       <span class="stat-away">${get('pos',1,'%')}</span>
@@ -1201,10 +1201,10 @@ window.copyOutcomeSignal = function(btn, match, label, pick, odd, status, pnl) {
   const hypeMessages = {
     'strat-ltd': '🎯 Bancata del pareggio chiusa. Un\'altra X affossata dal volume!',
     'strat-btl': '🎯 Back-To-Lay completato. Cavalcato il momentum, protetto il capitale!',
-    'strat-scalp': '🎯 Scalp spietato! Aggressività premiata all\'istante.',
+    'strat-scalp': '🎯 Scalp spietato! Aggressivit\u00E0 premiata all\'istante.',
     'strat-power': '🎯 Mismatch di energia sfruttato. Nessuno scampo nel finale: Power Play!',
     'strat-layfav': '🎯 Cacciatori di quote basse. Favorito in crisi decapitato!',
-    'strat-scattergun': '🎯 Fucilata incassata! Il Dutching non perdona l\'instabilità. Dati dominati.',
+    'strat-scattergun': '🎯 Fucilata incassata! Il Dutching non perdona l\'instabilit\u00E0. Dati dominati.',
     'strat-fortino': '🎯 Decapitazione matematica. Incassiamo lo sfinimento del Leader a quota ingiusta!',
     'strat-deadzone': '🎯 Munto il Time Decay. Paga il non-gioco e il collasso tattico!',
     'strat-fade': '🎯 Karma quantitativo ristabilito. Bookmaker battuto sul contromercato!',

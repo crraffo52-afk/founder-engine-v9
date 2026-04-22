@@ -31,9 +31,12 @@ function parseRawMatchText(raw) {
 
   // Clean string to remove half-time scores like (0:0) or (1-0) to avoid false score extraction
   // ALSO remove lines likely containing other stats that look like scores (Corners, etc.)
+  // We ignore lines with tabs or many spaces between numbers (likely a table row)
   const cleanScoreText = lines.filter(l => {
     const low = l.toLowerCase();
-    return !low.includes('corner') && !low.includes('angoli') && !low.includes('tiri') && !low.includes('shots');
+    const hasManyNums = (l.match(/\d+/g) || []).length > 3;
+    const isTable = l.includes('\t') || l.includes('  ');
+    return !low.includes('corner') && !low.includes('angoli') && !low.includes('tiri') && !low.includes('shots') && !hasManyNums && !isTable;
   }).join('\n').replace(/\(\s*\d{1,2}\s*[:\-]\s*\d{1,2}\s*\)/g, '');
 
   // Score: look for single-digit:single-digit pattern
@@ -125,7 +128,7 @@ function parseRawMatchText(raw) {
   lines.forEach((line, i) => {
     statDefs.forEach(def => {
       if (def.keys.some(k => line.toLowerCase() === k.toLowerCase() || line.toLowerCase().includes(k.toLowerCase()))) {
-        if (line.includes('(1T)') || line.includes('1┬░ Tempo')) return;
+        if (line.includes('(1T)') || line.includes('1° Tempo')) return;
         const raw1 = lines[i + 1]?.replace('%', '').replace(',', '.').trim();
         const raw2 = lines[i + 2]?.replace('%', '').replace(',', '.').trim();
         const v1 = parseFloat(raw1);

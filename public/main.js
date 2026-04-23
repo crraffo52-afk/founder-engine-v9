@@ -30,13 +30,10 @@ function parseRawMatchText(raw) {
   }
 
   // Clean string to remove half-time scores like (0:0) or (1-0) to avoid false score extraction
-  // ALSO remove lines likely containing other stats that look like scores (Corners, etc.)
-  // We ignore lines with tabs or many spaces between numbers (likely a table row)
+  // ALSO remove lines that are explicitly marked as statistics to avoid confusion
   const cleanScoreText = lines.filter(l => {
     const low = l.toLowerCase();
-    const hasManyNums = (l.match(/\d+/g) || []).length > 3;
-    const isTable = l.includes('\t') || l.includes('  ');
-    return !low.includes('corner') && !low.includes('angoli') && !low.includes('tiri') && !low.includes('shots') && !hasManyNums && !isTable;
+    return !low.includes('corner') && !low.includes('angoli') && !low.includes('tiri') && !low.includes('shots');
   }).join('\n').replace(/\(\s*\d{1,2}\s*[:\-]\s*\d{1,2}\s*\)/g, '');
 
   // Score: look for single-digit:single-digit pattern
@@ -72,7 +69,7 @@ function parseRawMatchText(raw) {
   }
   // Fallback: look for "53'" style
   if (!result.minute) {
-    const minAlt = text.match(/\b(\d{1,3})['ÔÇ▓]/);
+    const minAlt = text.match(/\b(\d{1,3})['\u2032\u0027]/);
     if (minAlt) result.minute = parseInt(minAlt[1], 10);
   }
 
@@ -88,7 +85,7 @@ function parseRawMatchText(raw) {
   }
   // XG inline "0.48-0.25" format in table row
   if (result.xgh === undefined) {
-    const xgInline = text.match(/(\d+[.,]\d+)\s*[-ÔÇô]\s*(\d+[.,]\d+)\s*(?=\s|$)/);
+    const xgInline = text.match(/(\d+[.,]\d+)\s*[\-\u2013\u2014]\s*(\d+[.,]\d+)\s*(?=\s|$)/);
     if (xgInline) {
       const v1 = parseFloat(xgInline[1].replace(',', '.'));
       const v2 = parseFloat(xgInline[2].replace(',', '.'));
@@ -779,7 +776,7 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     if (ev > 0 && mHome > 65 && xgGapH > 0.5 && trend !== 'STABLE') {
       signal = 'BUY HOME';
       color = '#2dd4bf';
-      msg = `✅ BACK ${lastData.home} ÔÇö Momentum ${mHome}% + XG Gap +${xgGapH.toFixed(2)}. EV positivo (€${ev}).`;
+      msg = `✅ BACK ${lastData.home} \u2014 Momentum ${mHome}% + XG Gap +${xgGapH.toFixed(2)}. EV positivo (\u20AC${ev}).`;
     } else if (ev > 0 && mAway > 65 && xgGapA > 0.5 && trend !== 'STABLE') {
       signal = 'BUY AWAY';
       color = '#2dd4bf';
@@ -791,7 +788,7 @@ function updateExchangeSignal(b1, lx, backProfit, layLiability, ev) {
     } else if (ev < -0.2 || (mHome < 35 && mAway < 35)) {
       signal = 'WAIT';
       color = '#94a3b8';
-      msg = '⏱️ Match sterile o EV negativo. Attendere segnale più chiaro.';
+      msg = '⏱\uFE0F Match sterile o EV negativo. Attendere segnale pi\u00F9 chiaro.';
     } else {
       signal = 'MONITOR';
       color = '#38bdf8';

@@ -320,13 +320,13 @@ function updateDynamicStrategies(data, momentum) {
   // 1. LAY THE DRAW
   // Score locked, significant offensive production from either side
   if (data.gh === data.ga && min >= 35 && min <= 80 &&
-      (totalXG > 0.5 || daPerMin > 0.5 || (soth + sota) >= 3))
+      (totalXG > 1.0 || daPerMin > 0.65 || (soth + sota) >= 5))
     byId('strat-ltd')?.classList.add('strat-active');
 
   // 2. BACK TO LAY
   // One team clearly dominating via DA rate or XG gap
-  if ((xgGapH > 0.3 && mHome > 58 && daRateH > 0.35) ||
-      (xgGapA > 0.3 && mAway > 58 && daRateA > 0.35))
+  if ((xgGapH > 0.6 && mHome > 65 && daRateH > 0.55) ||
+      (xgGapA > 0.6 && mAway > 65 && daRateA > 0.55))
     byId('strat-btl')?.classList.add('strat-active');
 
   // 3. SCALP UNDER
@@ -348,8 +348,8 @@ function updateDynamicStrategies(data, momentum) {
 
   // 6. SCATTERGUN (Dutching)
   // High pressure balanced match with goals expected
-  if (totalXG > 0.8 && Math.abs(mHome - mAway) < 25 &&
-      (data.gh + data.ga) <= 1 && daPerMin > 0.55)
+  if (totalXG > 1.2 && Math.abs(mHome - mAway) < 20 &&
+      (data.gh + data.ga) <= 1 && daPerMin > 0.75)
     byId('strat-scattergun')?.classList.add('strat-active');
 
   // --- OMNI-ELITE PACK ---
@@ -433,7 +433,7 @@ function updateBookPreview(data) {
   }
 
   let nextOver = totalGoals >= 2 ? 3.5 : (totalGoals === 1 ? 2.5 : 1.5);
-  if (totalXG > totalGoals + 0.6 && daTotal / min > 0.5) {
+  if (totalXG > totalGoals + 1.0 && daTotal / min > 0.75) {
     dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Over ${nextOver}`, odd: '1.75+', confidence: 'Alta', reason: `Ritmo forsennato, XG totale reale (${totalXG.toFixed(2)}) chiama altri gol.` });
   } else if (totalXG <= totalGoals + 0.2 && min > 60 && daTotal / min < 0.4) {
     dynamicBets.push({ label: `UNDER / OVER ${nextOver}`, pick: `Under ${nextOver}`, odd: '1.60+', confidence: 'Alta', reason: `Partita sterile, pochissima produzione offensiva al minuto ${min}'.` });
@@ -458,20 +458,20 @@ function updateBookPreview(data) {
 
   // 1. Draw No Bet (Rimborso in caso di pareggio)
   if (min > 45 && data.gh === data.ga && totalGoals >= 0) {
-    if (xgDiff > 0.5 && get('da', 0)/min > 0.4) {
+    if (xgDiff > 0.9 && get('da', 0)/min > 0.6) {
       dynamicBets.push({ label: 'DRAW NO BET (DNB)', pick: `1 DNB (${data.home || 'CASA'})`, odd: '1.50+', confidence: 'Media', reason: 'Vantaggio XG e predominio territoriale netto, ma match in bilico.' });
-    } else if (xgDiff < -0.5 && get('da', 1)/min > 0.4) {
+    } else if (xgDiff < -0.9 && get('da', 1)/min > 0.6) {
       dynamicBets.push({ label: 'DRAW NO BET (DNB)', pick: `2 DNB (${data.away || 'OSPITE'})`, odd: '1.50+', confidence: 'Media', reason: 'Vantaggio XG e predominio territoriale netto, ma match in bilico.' });
     }
   }
 
   // 2. Tempo con più Gol
-  if (min > 30 && min <= 45 && totalGoals === 0 && daTotal / min > 1.0) {
+  if (min > 30 && min <= 45 && totalGoals === 0 && daTotal / min > 1.3) {
     dynamicBets.push({ label: 'TEMPO CON PIÙ GOL', pick: '2° Tempo', odd: '2.00+', confidence: 'Alta', reason: 'Pressione esplosiva nel 1T ma difese momentaneamente ermetiche. Esplosione gol attesa nel 2T.' });
   }
 
   // 3. Risultato Esatto Cluster
-  if (min > 60 && Math.abs(xgDiff) > 1.2 && data.gh !== data.ga) {
+  if (min > 60 && Math.abs(xgDiff) > 1.5 && data.gh !== data.ga) {
     if (data.gh > data.ga) {
       dynamicBets.push({ label: 'RISULTATO ESATTO MULTIPO', pick: `${data.gh+1}-${data.ga} / ${data.gh+2}-${data.ga}`, odd: '2.50+', confidence: 'Media', reason: 'Dominio assoluto. Alta probabilità di dilagare visti gli Expected Goals non convertiti.' });
     } else {
@@ -480,7 +480,7 @@ function updateBookPreview(data) {
   }
 
   // 4. Fasce di Minuto
-  if (min >= 68 && min <= 82 && daTotal / min > 1.1) {
+  if (min >= 68 && min <= 82 && daTotal / min > 1.3) {
     dynamicBets.push({ label: 'FASCE DI MINUTO (GOL LIVE)', pick: 'Gol dal 76\':01 a Fine Partita (SÌ)', odd: '1.80+', confidence: 'Alta', reason: 'Frenesia agonistica altissima, la partita è in rottura tattica prolungata.' });
   }
 
@@ -581,7 +581,7 @@ function updateStrategicGuide(data, metrics = {}) {
         <div>🎯 SOT-Eff A: ${(sotEffA*100).toFixed(0)}%</div>
       </div>
       <div style="margin-top:10px; color:var(--warn); font-size:11px;">
-        ${daPerMin > 0.6 ? '⚠️ Pressione ALTA — monitorare per segnale LTD o BTL.' : 'Attendi che il ritmo di gioco superi la soglia operativa.'}
+        ${daPerMin > 0.8 ? '⚠️ Pressione ESTREMA — monitorare per segnale LTD o BTL.' : (daPerMin > 0.6 ? '🔍 Pressione ALTA — Analisi conferme in corso.' : 'Attendi che il ritmo di gioco superi la soglia operativa.')}
       </div>`;
     return;
   }
@@ -590,7 +590,7 @@ function updateStrategicGuide(data, metrics = {}) {
     'strat-ltd': {
       bet: 'LAY DRAW (BANCA X)',
       hype: '🔥 LA X TREMA! L\'algoritmo rileva un\'urgenza offensiva che il pareggio non può reggere.',
-      logic: `Score bloccato ${data.gh}:${data.ga} al ${min}'. ${daPerMin.toFixed(2)} DA/min — pressione ${daPerMin > 0.6 ? 'ALTA' : 'MEDIA'}. XG ${totalXG.toFixed(2)} suggerisce gol imminente.`,
+      logic: `Score bloccato ${data.gh}:${data.ga} al ${min}'. ${daPerMin.toFixed(2)} DA/min — pressione ESTREMA (>0.65). XG ${totalXG.toFixed(2)} chiama il gol matematico.`,
       entry: `Entrare con LAY X se quota < 3.50. Pressione floor: ${daPerMin.toFixed(2)} DA/min ✔️`,
       exit: `✅ Cash-out al primo gol (Green-up). ⚠️ Uscire al minuto 75-80 se score rimane ${data.gh}:${data.ga} (Rule of 70).`,
       risk: 'Media-Bassa.',
@@ -599,7 +599,7 @@ function updateStrategicGuide(data, metrics = {}) {
     'strat-btl': {
       bet: `BACK ${xgGapH > xgGapA ? homeTeam : awayTeam}`,
       hype: '🚀 MOMENTUM IN DECOLLO! Una squadra ha preso il controllo totale del campo.',
-      logic: `${xgGapH > xgGapA ? homeTeam : awayTeam} domina. DA/min: ${(xgGapH > xgGapA ? daRateH : daRateA).toFixed(2)}/min. XG Gap: +${Math.max(xgGapH, xgGapA).toFixed(2)}.`,
+      logic: `${xgGapH > xgGapA ? homeTeam : awayTeam} domina (XG Gap +${Math.max(xgGapH, xgGapA).toFixed(2)}). DA/min: ${(xgGapH > xgGapA ? daRateH : daRateA).toFixed(2)}/min. Momentum in fiamme.`,
       entry: `Punta ${xgGapH > xgGapA ? homeTeam : awayTeam} se quota > 1.70. Momentum ${Math.max(mHome, mAway)}%.`,
       exit: 'Green-up non appena pareggia o passa davanti. Stop se avversario segna.',
       risk: 'Media.',
@@ -635,7 +635,7 @@ function updateStrategicGuide(data, metrics = {}) {
     'strat-scattergun': {
       bet: 'DUTCHING 1X2 + OVER',
       hype: '🔫 MODALITÀ SCATTERGUN! Turbolenza rilevata, copriamo il ventaglio dei risultati.',
-      logic: `Match ad alta intensità. DA/min: ${daPerMin.toFixed(2)}. XG: ${totalXG.toFixed(2)}. Equilibrio da sfruttare.`,
+      logic: `Match ad altissima intensità. DA/min: ${daPerMin.toFixed(2)}. XG: ${totalXG.toFixed(2)} (>1.20). Instabilità perfetta per il Dutching.`,
       entry: 'Coprire 1X2 con stake proporzionale alle quote. Aggiungere OVER 1.5.',
       exit: 'Uscire al secondo gol con profit protetto.',
       risk: 'Media.',
